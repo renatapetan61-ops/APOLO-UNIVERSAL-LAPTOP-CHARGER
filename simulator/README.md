@@ -6,6 +6,13 @@ The Android app includes an in-process deterministic demonstration simulator:
 - Warning — illustrative low state of charge and elevated temperature.
 - Fault — illustrative critical state and output-blocked message.
 
-All values are synthetic. They do not represent a real battery, cannot validate a BMS, and must not be used to select operating thresholds. The simulator does not communicate with or control hardware.
+A standalone Python generator creates matching v1 binary telemetry frames for test fixtures and protocol development:
 
-The read-only v1 telemetry decoder has unit tests under android/app/src/test. A standalone hardware simulator/service and integration transport remain future work.
+```bash
+python simulator/apolo_simulator.py --scenario normal --sequence 1
+python simulator/apolo_simulator.py --scenario warning --sequence 2
+python simulator/apolo_simulator.py --scenario fault --sequence 3
+python -m unittest discover -s simulator -p "test_*.py" -v
+```
+
+All values are synthetic. They do not represent a real battery, cannot validate a BMS, and must not be used to select operating thresholds. The simulator does not communicate with or control hardware. It always reports that power output is disabled.
