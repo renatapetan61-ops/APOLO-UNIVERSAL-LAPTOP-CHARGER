@@ -1,44 +1,31 @@
-# Protocolo APOLO — rascunho de telemetria
+# APOLO Telemetry Protocol — v1 draft
 
-## Objetivo
+## Scope and safety
 
-Definir mensagens de leitura entre o aplicativo e o módulo. A primeira versão é somente leitura. Não há opcode para habilitar saída, alterar limites de proteção ou comandar contatores.
+This is a read-only telemetry format for app/simulator integration. It is not a control protocol and must never command a charger, inverter, contactor, MOSFET, balancing circuit, or battery output. A communication timeout, malformed frame, stale sequence, or invalid sensor value means data is unavailable. Hardware protection must remain autonomous and independent of Android, Bluetooth, USB, and network services.
 
-## Envelope lógico
+## Binary frame
 
-- `version`: versão do protocolo.
-- `message_type`: `telemetry`, `health`, `fault` ou `identity`.
-- `sequence`: contador monotônico.
-- `timestamp_ms`: relógio monotônico do módulo.
-- `payload`: campos tipados.
-- `crc`: integridade do quadro na camada de transporte.
+All multi-byte integers are big-endian. Fixed size: 20 bytes.
 
-## Telemetria
+| Offset | Size | Field | Encoding |
+|---:|---:|---|---|
+| 0 | 2 | Magic | ASCII AP (0x41 0x50) |
+| 2 | 1 | Protocol version | 0x01 |
+| 3 | 2 | Sequence | Unsigned 16-bit, wraps modulo 65536 |
+| 5 | 4 | Pack voltage | Unsigned millivolts |
+| 9 | 4 | Pack current | Signed two's-complement milliamps |
+| 13 | 2 | Temperature | Signed two's-complement centi-degrees Celsius |
+| 15 | 1 | State of charge | Integer percent, 0–100 |
+| 16 | 2 | Status flags | Reserved in v1 |
+| 18 | 2 | CRC | CRC-16/CCITT-FALSE over bytes 0–17 |
 
-Exemplo ilustrativo, não proveniente de hardware:
+CRC: polynomial 0x1021, initial 0xFFFF, no reflection, xor-out 0x0000.
 
-```json
-{
-  "version": 1,
-  "message_type": "telemetry",
-  "sequence": 42,
-  "timestamp_ms": 120000,
-  "payload": {
-    "mode": "SAFE_OFF",
-    "soc_percent": 78.0,
-    "pack_voltage_v": 51.2,
-    "pack_current_a": 0.0,
-    "temperature_c": 25.0,
-    "output_enabled": false,
-    "data_origin": "SIMULATOR"
-  }
-}
-```
+## Decoder validation
 
-## Regras
+The Android decoder rejects wrong frame size, magic, version, CRC, SoC outside 0–100%, voltage above 100 V, current outside ±200 A, and temperature outside −40 to 125 °C. These are parser sanity limits, not pack operating limits or safety thresholds.
 
-- Rejeitar versão desconhecida, tamanho inválido, CRC incorreto e sequência regressiva.
-- Marcar telemetria expirada como indisponível, nunca reutilizar silenciosamente valores antigos.
-- Unidade SI explícita em todos os campos.
-- Campos de origem devem distinguir `SIMULATOR` de `HARDWARE`.
-- Qualquer futuro comando não telemétrico exige threat model, autenticação, autorização local e revisão de segurança separada.
+## Before hardware integration
+
+A future USB or BLE transport must add device identity, authenticated pairing where appropriate, explicit protocol version negotiation, sequence-gap detection, receive timestamps, stale-data timeout, bounded buffering, and disconnect handling. No transport has been enabled in this release. A laptop USB-A port must never be treated as a charging input.
