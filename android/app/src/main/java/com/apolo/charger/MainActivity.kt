@@ -29,10 +29,11 @@ private enum class Screen(val label: String) {
     HOME("Painel"), BATTERY("Bateria"), BMS("BMS"), CONNECTION("Conexão"), ABOUT("Sobre")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ApoloApp() {
     var screen by remember { mutableStateOf(Screen.HOME) }
-    val telemetry = remember { DemoTelemetry.sample() }
+    val telemetry = remember { DemoData.sample() }
     MaterialTheme(colorScheme = darkColorScheme()) {
         Scaffold(
             topBar = {
@@ -175,7 +176,7 @@ private data class DemoTelemetry(
     val power: String
 )
 
-private object DemoTelemetry {
+private object DemoData {
     fun sample() = DemoTelemetry(
         stateOfCharge = 78,
         packVoltage = "51,2",
