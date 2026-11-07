@@ -154,7 +154,12 @@ private fun BmsScreen(scenario: DemoScenario, t: DemoTelemetry) {
 
 @Composable
 private fun ConnectionScreen() {
+    val laptop = ApoloLaptopProfiles.POSITIVO_UNIQUE_TV_S2065
     Text("Conectividade", style = MaterialTheme.typography.headlineMedium)
+    Text("Notebook-alvo: ${laptop.model}", style = MaterialTheme.typography.titleMedium)
+    ListItem(headlineContent = { Text("Referência do carregador original") }, supportingContent = { Text("${laptop.nominalInputVoltageV} V × ${laptop.adapterRatedCurrentA} A = ${"%.2f".format(java.util.Locale.US, laptop.adapterRatedPowerW)} W (valor informado; não verificado)") })
+    ListItem(headlineContent = { Text("Conector e polaridade") }, supportingContent = { Text("Ainda não identificados. Perfil de compatibilidade incompleto.") })
+    ListItem(headlineContent = { Text("Autorização de saída") }, supportingContent = { Text(if (laptop.canAuthorizePowerOutput()) "Perfil verificado" else "BLOQUEADA — falta validação elétrica do conector, polaridade e entrada do notebook") })
     ListItem(headlineContent = { Text("USB Host") }, supportingContent = { Text("Declarado como recurso opcional; comunicação ainda não implementada") })
     ListItem(headlineContent = { Text("Bluetooth LE") }, supportingContent = { Text("Integração ainda não implementada") })
     ListItem(headlineContent = { Text("Protocolo APOLO") }, supportingContent = { Text("Parser binário e testes locais; sem dispositivo físico") })
