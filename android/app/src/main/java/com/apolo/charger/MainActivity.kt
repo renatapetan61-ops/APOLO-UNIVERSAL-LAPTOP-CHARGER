@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -29,22 +28,27 @@ private enum class Screen(val label: String) {
     HOME("Painel"), BATTERY("Bateria"), BMS("BMS"), CONNECTION("Conexão"), ABOUT("Sobre")
 }
 
+private enum class DemoScenario(val label: String) {
+    NORMAL("Normal"), WARNING("Alerta"), FAULT("Falha")
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ApoloApp() {
     var screen by remember { mutableStateOf(Screen.HOME) }
-    val telemetry = remember { DemoData.sample() }
+    var scenario by remember { mutableStateOf(DemoScenario.NORMAL) }
+    val telemetry = remember(scenario) { DemoData.sample(scenario) }
     MaterialTheme(colorScheme = darkColorScheme()) {
         Scaffold(
             topBar = {
                 TopAppBar(
                     title = { Text("APOLO Charger") },
-                    actions = { AssistChip(onClick = {}, label = { Text("DEMO") }) }
+                    actions = { AssistChip(onClick = {}, label = { Text("SIMULADOR") }) }
                 )
             },
             bottomBar = {
                 NavigationBar {
-                    listOf(Screen.HOME, Screen.BATTERY, Screen.BMS, Screen.CONNECTION, Screen.ABOUT).forEach { item ->
+                    Screen.entries.forEach { item ->
                         NavigationBarItem(
                             selected = screen == item,
                             onClick = { screen = item },
@@ -71,9 +75,9 @@ private fun ApoloApp() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 when (screen) {
-                    Screen.HOME -> HomeScreen(telemetry)
+                    Screen.HOME -> HomeScreen(telemetry, scenario) { scenario = it }
                     Screen.BATTERY -> BatteryScreen(telemetry)
-                    Screen.BMS -> BmsScreen()
+                    Screen.BMS -> BmsScreen(scenario, telemetry)
                     Screen.CONNECTION -> ConnectionScreen()
                     Screen.ABOUT -> AboutScreen()
                 }
@@ -83,14 +87,24 @@ private fun ApoloApp() {
 }
 
 @Composable
-private fun HomeScreen(t: DemoTelemetry) {
+private fun HomeScreen(t: DemoTelemetry, scenario: DemoScenario, onScenario: (DemoScenario) -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Módulo APOLO", style = MaterialTheme.typography.titleLarge)
             Text("Nenhum hardware conectado", color = MaterialTheme.colorScheme.secondary)
-            Text("A saída de potência está bloqueada nesta versão.", style = MaterialTheme.typography.bodyMedium)
+            Text("A saída de potência está bloqueada nesta versão.")
             LinearProgressIndicator(progress = { t.stateOfCharge / 100f }, modifier = Modifier.fillMaxWidth())
             Text("Carga simulada: ${t.stateOfCharge}%")
+        }
+    }
+    Text("Cenário de teste", style = MaterialTheme.typography.titleMedium)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DemoScenario.entries.forEach { item ->
+            FilterChip(
+                selected = scenario == item,
+                onClick = { onScenario(item) },
+                label = { Text(item.label) }
+            )
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -101,6 +115,7 @@ private fun HomeScreen(t: DemoTelemetry) {
         MetricCard("Corrente", "${t.current} A", Modifier.weight(1f))
         MetricCard("Potência", "${t.power} W", Modifier.weight(1f))
     }
+    Text("Estado simulado: ${t.status}", style = MaterialTheme.typography.titleSmall)
     SafetyNotice()
 }
 
@@ -121,40 +136,38 @@ private fun BatteryScreen(t: DemoTelemetry) {
     MetricCard("Estado de carga (SoC)", "${t.stateOfCharge}%")
     MetricCard("Barramento de referência", "${t.packVoltage} V")
     MetricCard("Temperatura simulada", "${t.temperature} °C")
-    Text("Meta de projeto: LiFePO4, 1.500 Wh. A capacidade real e a autonomia dependem do pack validado, conversores, carga e condições térmicas.")
+    Text("Meta conceitual: LiFePO4, 1.500 Wh. Capacidade e autonomia reais dependem do pack, conversores, carga e condições térmicas.")
     SafetyNotice()
 }
 
 @Composable
-private fun BmsScreen() {
+private fun BmsScreen(scenario: DemoScenario, t: DemoTelemetry) {
     Text("BMS proprietário", style = MaterialTheme.typography.headlineMedium)
-    listOf(
-        "Monitoramento individual de células: não conectado",
-        "Corrente e tensão do pack: dados simulados",
-        "Sensores térmicos: não conectados",
-        "Balanceamento: desabilitado",
-        "Registro de falhas: somente demonstração",
-        "Desconexão independente: requisito de hardware"
-    ).forEach { ListItem(headlineContent = { Text(it) }) }
+    ListItem(headlineContent = { Text("Células individuais") }, supportingContent = { Text("Não conectadas — sem hardware") })
+    ListItem(headlineContent = { Text("Tensão/corrente do pack") }, supportingContent = { Text("Somente dados do simulador") })
+    ListItem(headlineContent = { Text("Sensores térmicos") }, supportingContent = { Text("Não conectados") })
+    ListItem(headlineContent = { Text("Balanceamento") }, supportingContent = { Text("Desabilitado") })
+    ListItem(headlineContent = { Text("Estado do cenário") }, supportingContent = { Text("${scenario.label}: ${t.status}") })
+    ListItem(headlineContent = { Text("Corte independente") }, supportingContent = { Text("Requisito físico; não implementado no aplicativo") })
     SafetyNotice()
 }
 
 @Composable
 private fun ConnectionScreen() {
     Text("Conectividade", style = MaterialTheme.typography.headlineMedium)
-    ListItem(headlineContent = { Text("USB") }, supportingContent = { Text("Host USB opcional; nenhum dispositivo detectado") })
-    ListItem(headlineContent = { Text("Bluetooth") }, supportingContent = { Text("Integração ainda não implementada") })
-    ListItem(headlineContent = { Text("Protocolo APOLO") }, supportingContent = { Text("Especificação inicial em protocols/TELEMETRY_PROTOCOL.md") })
-    Text("O cabo USB-C para USB-A pode ser útil para comunicação em combinações compatíveis. Ele não transforma a porta USB-A do notebook em entrada de carga.")
+    ListItem(headlineContent = { Text("USB Host") }, supportingContent = { Text("Declarado como recurso opcional; comunicação ainda não implementada") })
+    ListItem(headlineContent = { Text("Bluetooth LE") }, supportingContent = { Text("Integração ainda não implementada") })
+    ListItem(headlineContent = { Text("Protocolo APOLO") }, supportingContent = { Text("Parser binário e testes locais; sem dispositivo físico") })
+    Text("Um cabo USB-C para USB-A pode servir para comunicação em combinações compatíveis. Ele não transforma a porta USB-A do notebook em entrada de carga.")
     SafetyNotice()
 }
 
 @Composable
 private fun AboutScreen() {
     Text("Sobre o projeto", style = MaterialTheme.typography.headlineMedium)
-    Text("APOLO Universal Laptop Charger — versão 0.1.0")
-    Text("Aplicativo em fase inicial. O modo atual é demonstração local, sem conexão com bateria ou controle de energia.")
-    Text("Metas: até 240 W, 1.500 Wh LiFePO4 e saída DC pretendida de 19 V, sujeitas a projeto e validação.")
+    Text("APOLO Universal Laptop Charger — versão 0.2.0")
+    Text("Aplicativo em desenvolvimento, com painel e simulador local. Não há conexão com bateria nem controle de energia.")
+    Text("Metas de engenharia: até 240 W, 1.500 Wh LiFePO4 e saída DC pretendida de 19 V, sujeitas a projeto, compatibilidade e certificação.")
     SafetyNotice()
 }
 
@@ -163,7 +176,7 @@ private fun SafetyNotice() {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("SEGURANÇA", style = MaterialTheme.typography.titleSmall)
-            Text("Saídas reais permanecem bloqueadas. Dados exibidos são demonstrativos. O app não substitui o BMS nem proteções elétricas independentes.")
+            Text("Saídas reais permanecem bloqueadas. Os dados são simulados. O app não substitui BMS, fusíveis, desconexão física ou proteções elétricas independentes.")
         }
     }
 }
@@ -173,15 +186,14 @@ private data class DemoTelemetry(
     val packVoltage: String,
     val temperature: String,
     val current: String,
-    val power: String
+    val power: String,
+    val status: String
 )
 
 private object DemoData {
-    fun sample() = DemoTelemetry(
-        stateOfCharge = 78,
-        packVoltage = "51,2",
-        temperature = "25,0",
-        current = "0,0",
-        power = "0"
-    )
+    fun sample(scenario: DemoScenario) = when (scenario) {
+        DemoScenario.NORMAL -> DemoTelemetry(78, "51,2", "25,0", "0,0", "0", "Operação normal simulada")
+        DemoScenario.WARNING -> DemoTelemetry(18, "48,0", "48,0", "0,0", "0", "Atenção: temperatura elevada simulada")
+        DemoScenario.FAULT -> DemoTelemetry(8, "44,0", "62,0", "0,0", "0", "Falha crítica simulada — saída bloqueada")
+    }
 }
