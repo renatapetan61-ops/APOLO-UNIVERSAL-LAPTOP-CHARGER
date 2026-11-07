@@ -14,9 +14,11 @@
 
 ## Not implemented or validated
 
-- No physical Power Module, battery pack, BMS board, sensors, contactors, fuse assembly, or power converters are connected.
+- The internal BMS software model and Power Module software policy exist in Kotlin, but no physical Power Module, battery pack, sensors, switching/protection components, or power converters are connected.
 - No USB serial/accessory or Bluetooth LE hardware transport is implemented.
-- No firmware for a real BMS or power stage is included.
+- The internal BMS software core includes profile validation, telemetry freshness checks, cell-voltage/current/temperature status evaluation, and a basic coulomb-counting SoC estimate.
+- The Power Module software model evaluates laptop output requests but intentionally denies all real hardware activation.
+- No embedded firmware, physical sensing, or hardware control is implemented; the current BMS is a software domain model, not an operating battery controller.
 - No charging output, USB-C PD negotiation, laptop connector detection, or power-control function is available.
 - No APK has been tested on a physical Android device.
 - No electrical, thermal, EMC, transport, battery, or product-safety certification has been completed.
