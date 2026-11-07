@@ -4,11 +4,13 @@
 
 - Android application shell using Kotlin and Jetpack Compose.
 - Five navigation areas: dashboard, battery, BMS, connectivity, and about.
-- Local deterministic simulator with Normal, Warning, and Fault scenarios.
+- Local Android simulator with Normal, Warning, and Fault scenarios.
+- Standalone Python simulator that generates protocol v1 telemetry frames for all three scenarios.
 - Synthetic values visibly identified as simulated, with outputs explicitly blocked.
 - Read-only telemetry frame decoder with length, magic, version, CRC, and sanity checks.
-- Unit tests for valid frames and malformed/corrupted frames.
-- GitHub Actions workflow runs unit tests, assembles a debug APK, and uploads the APK as a 14-day artifact.
+- Kotlin unit tests for valid frames and malformed/corrupted frames.
+- Python tests for frame size, CRC check value, scenario safety flag, and sequence validation.
+- GitHub Actions runs Python and Android unit tests, assembles the debug APK, and uploads the APK as a 14-day artifact.
 
 ## Not implemented or validated
 
