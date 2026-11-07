@@ -23,3 +23,15 @@ USB-A no notebook normalmente fornece energia para periféricos. Não injete ene
 ## Potência e autonomia
 
 A 19 V, 240 W equivalem a cerca de 12,63 A no lado de saída. Autonomia não pode ser prometida a partir da capacidade nominal isolada; deve considerar energia útil, eficiência, limites de descarga, temperatura, envelhecimento e consumo real.
+
+## Perfil inicial: Positivo Unique TV S2065
+
+O projeto registra como referência inicial a informação fornecida pelo usuário sobre o carregador original: **19 V e 3,42 A**, equivalente a **64,98 W**. Esse valor descreve a classificação do adaptador, não confirma sozinho a faixa de entrada do notebook nem a compatibilidade de qualquer fonte substituta.
+
+Ainda não estão confirmados:
+- código exato e dimensões do plugue DC;
+- polaridade indicada no adaptador e no notebook;
+- tolerância de tensão na entrada do equipamento;
+- eventual pino de identificação ou requisito proprietário.
+
+O perfil de software permanece explicitamente **não verificado**. Nenhuma saída pode ser autorizada com base apenas nesses dados. A próxima etapa é comparar a etiqueta do adaptador original e a identificação da entrada do notebook, além de validar a geometria do conector e a polaridade com procedimento técnico seguro.
