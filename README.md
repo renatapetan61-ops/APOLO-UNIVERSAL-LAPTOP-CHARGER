@@ -1,55 +1,72 @@
 # APOLO Universal Laptop Charger
 
-Plataforma Android + módulo portátil de energia + BMS proprietário para diagnóstico e integração de alimentação de notebooks.
+Projeto integrado de aplicativo Android, simulador e arquitetura de referência para um módulo portátil de energia com BMS proprietário.
 
-> **Status:** fundação de software. O app inclui modo demonstração; não controla saídas de potência reais. Hardware e BMS ainda não foram construídos nem validados.
+> **Estado real do projeto:** o aplicativo Android compila no CI. O painel e os três cenários do simulador são locais e demonstrativos. O decoder de telemetria é somente leitura. Nenhum hardware, bateria, BMS físico ou saída de carregamento está conectado ou validado.
 
-## Metas preliminares (não são especificação de fabricação)
+## Metas conceituais (não são especificação de fabricação)
 
 | Item | Meta |
 |---|---:|
 | Energia nominal | 1.500 Wh |
 | Potência máxima pretendida | 240 W |
-| Química | LiFePO4 |
-| Entrada AC do carregador | 100–240 V AC |
+| Química pretendida | LiFePO4 |
+| Entrada AC pretendida | 100–240 V AC |
 | Barramento de referência | 16S / 51,2 V nominal |
 | Saída DC pretendida | 19 V |
 | USB-C | USB Power Delivery, com negociação e hardware apropriado |
 
-A compatibilidade com notebooks depende de tensão, corrente, polaridade, conector e identificação/protocolo do fabricante. 19 V não é universal.
+19 V não é universal: cada notebook exige confirmação de tensão, corrente, polaridade, conector e identificação/protocolo do fabricante.
 
-## Componentes
+## O que já existe
 
-- `android/`: aplicativo Kotlin + Jetpack Compose.
-- `power-module/`: especificação de arquitetura do módulo.
-- `bms/`: arquitetura e requisitos do BMS proprietário.
-- `protocols/`: protocolo de telemetria.
-- `simulator/`: simulador de dados para desenvolvimento.
-- `docs/`: arquitetura, segurança e compatibilidade.
-- `.github/workflows/`: validação automatizada.
+- Aplicativo Android Kotlin + Jetpack Compose com Painel, Bateria, BMS, Conexão e Sobre.
+- Simulador local selecionável: Normal, Alerta e Falha.
+- Indicadores demonstrativos identificados como simulados.
+- Aviso permanente de segurança e indicação de que a saída está bloqueada.
+- Decoder binário de telemetria v1, somente leitura, com validação de tamanho, magic, versão, CRC e faixas de plausibilidade.
+- Testes unitários do decoder.
+- GitHub Actions executa testes, compila APK debug e publica o APK como artefato por 14 dias.
+- Documentação de arquitetura, compatibilidade, protocolo, requisitos do BMS e status de desenvolvimento.
 
-## Segurança
+## Estrutura
+
+- `android/`: aplicativo Android.
+- `bms/`: requisitos e princípios de segurança do BMS proprietário.
+- `power-module/`: arquitetura preliminar do módulo.
+- `protocols/`: protocolo de telemetria read-only.
+- `simulator/`: descrição do simulador local.
+- `docs/`: arquitetura, compatibilidade e estado do projeto.
+- `.github/workflows/`: CI e artefato APK.
+
+## Segurança — limites obrigatórios
 
 - Android, API e nuvem nunca são a proteção primária da bateria.
 - O BMS requer proteções físicas independentes, fusível, desconexão segura, watchdog e estado seguro em falhas.
-- Nenhum comando de ligar/desligar potência real é implementado nesta versão.
-- Não injete energia em uma porta USB-A do notebook. Em geral, ela é uma saída de energia, não uma entrada de carregamento.
-- Cabo USB-C para USB-A pode ser usado para comunicação em cenários compatíveis; não fornece energia suficiente para carregar um notebook.
+- Nenhum comando de ligar/desligar potência real está implementado.
+- Não injete energia em uma porta USB-A do notebook; ela normalmente é uma saída.
+- Um cabo USB-C para USB-A pode servir para comunicação em cenários compatíveis, mas não carrega o notebook pela porta USB-A.
 - Pack LiFePO4 de 1,5 kWh exige projeto, montagem, análise de risco e ensaios por profissionais qualificados.
 
-## Começar
+## Compilar
 
-Abra a pasta `android/` no Android Studio (AGP/Gradle conforme os arquivos do projeto), sincronize e execute o app em um dispositivo Android compatível. O painel inicia em modo DEMO e identifica claramente os dados simulados.
+Abra o projeto no Android Studio ou execute na raiz:
 
-## Estado
+```bash
+gradle :android:app:testDebugUnitTest
+gradle :android:app:assembleDebug
+```
 
-| Área | Situação |
-|---|---|
-| Estrutura Android | Inicial |
-| Painel demonstrativo | Implementado nesta base |
-| Simulador | Inicial |
-| Comunicação física | Interface planejada; ainda sem driver validado |
-| BMS/firmware | Requisitos e arquitetura, sem controle de potência |
-| Hardware/certificação | Não implementados |
+O APK debug é produzido em `android/app/build/outputs/apk/debug/app-debug.apk` e também publicado como artefato da execução do GitHub Actions quando o workflow termina com sucesso.
 
-Consulte `docs/ARCHITECTURE.md`, `docs/POWER_COMPATIBILITY.md` e `bms/SAFETY_REQUIREMENTS.md`.
+## O que falta para o produto completo
+
+- Firmware e placa BMS reais, sensores e medição validada.
+- Projeto elétrico completo do pack, carregador AC, conversores, saídas e proteções.
+- Transporte USB/BLE implementado e testado com hardware.
+- Negociação USB-C PD e perfis DC validados.
+- Testes em bancada, integração, falhas, térmica, EMC e certificações aplicáveis.
+- Instalação e teste do APK em aparelhos Android físicos.
+- Protótipo físico, documentação de fabricação e validação por engenharia qualificada.
+
+Consulte `docs/DEVELOPMENT_STATUS.md` para o relatório de implementação e pendências.
