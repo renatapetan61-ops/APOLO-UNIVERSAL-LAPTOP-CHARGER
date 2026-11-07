@@ -47,7 +47,7 @@ class InternalBmsCore(
     private val limits: ApoloBmsLimits?
 ) {
     fun assess(snapshot: ApoloSensorSnapshot?, nowMs: Long): ApoloBmsAssessment {
-        if (profile == null || limits == null || !limits.limitsValidatedByContract()) {
+        if (profile == null || limits == null || !profile.limitsValidatedByEngineering || !limits.limitsValidatedByContract()) {
             return result(ApoloBmsState.UNCONFIGURED, "Perfil e limites de engenharia não validados")
         }
         if (snapshot == null) return result(ApoloBmsState.DATA_INVALID, "Nenhuma telemetria recebida")
