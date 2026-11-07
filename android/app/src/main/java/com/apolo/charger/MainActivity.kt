@@ -142,13 +142,13 @@ private fun BatteryScreen(t: DemoTelemetry) {
 
 @Composable
 private fun BmsScreen(scenario: DemoScenario, t: DemoTelemetry) {
-    Text("BMS proprietário", style = MaterialTheme.typography.headlineMedium)
-    ListItem(headlineContent = { Text("Células individuais") }, supportingContent = { Text("Não conectadas — sem hardware") })
-    ListItem(headlineContent = { Text("Tensão/corrente do pack") }, supportingContent = { Text("Somente dados do simulador") })
-    ListItem(headlineContent = { Text("Sensores térmicos") }, supportingContent = { Text("Não conectados") })
-    ListItem(headlineContent = { Text("Balanceamento") }, supportingContent = { Text("Desabilitado") })
+    Text("BMS interno APOLO — software", style = MaterialTheme.typography.headlineMedium)
+    Text("O BMS é um subsistema de software desenvolvido do zero para integrar o Power Module; não é um produto separado.")
+    ListItem(headlineContent = { Text("Motor de avaliação") }, supportingContent = { Text("Implementado em Kotlin: estados normal, alerta, crítico, dados inválidos e não configurado") })
+    ListItem(headlineContent = { Text("Estimativa de carga") }, supportingContent = { Text("Estimador básico por contagem de coulombs; ainda não calibrado") })
+    ListItem(headlineContent = { Text("Telemetria de células e sensores") }, supportingContent = { Text("Somente simulada; não há sensores reais conectados") })
     ListItem(headlineContent = { Text("Estado do cenário") }, supportingContent = { Text("${scenario.label}: ${t.status}") })
-    ListItem(headlineContent = { Text("Corte independente") }, supportingContent = { Text("Requisito físico; não implementado no aplicativo") })
+    ListItem(headlineContent = { Text("Saída de potência") }, supportingContent = { Text("Bloqueada: software não substitui proteção elétrica independente") })
     SafetyNotice()
 }
 
