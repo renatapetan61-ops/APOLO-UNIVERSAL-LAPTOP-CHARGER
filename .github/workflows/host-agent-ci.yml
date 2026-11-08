@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compile host agent and OCR module
-        run: python -m py_compile host-agent/apolo_host_agent.py host-agent/board_ocr.py
+        run: python -m py_compile host-agent/apolo_host_agent.py host-agent/board_ocr.py host-agent/amis_camera.py
       - name: Run host agent OCR tests
         working-directory: host-agent
         run: python -m unittest -v
