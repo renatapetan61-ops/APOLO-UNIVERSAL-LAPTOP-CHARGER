@@ -90,7 +90,8 @@ fun ConnectionScreen() {
         }
         Text("Limitação importante: ao ligar o celular por cabo USB comum ao notebook, normalmente o notebook é o host USB e o celular é o periférico. Nesse cenário, o Android não recebe a identidade do notebook pela API USB Host. A enumeração acima só mostra periféricos que o celular consegue hospedar, por exemplo via OTG.")
         Text("Identificação do Positivo: para confirmar o modelo de verdade, será necessário um agente no notebook que responda a um desafio criptográfico por um canal de dados compatível, ou uma interface APOLO dedicada. Nome Bluetooth, nome USB ou VID/PID isolado não bastam para autenticação.")
-        Text("Conector DC: USB não mede o plugue de alimentação do notebook, suas dimensões ou a polaridade. A polaridade só pode ser medida por um circuito sensor isolado e protegido ligado ao módulo de medição; o celular sozinho não consegue detectá-la.")
+        Text("Sensor interno de polaridade APOLO: o aplicativo agora contém um analisador de software que classifica amostras center-to-sleeve recebidas do ADC isolado do Power Module. Sem esse sinal físico, o estado permanece AGUARDANDO MEDIÇÃO e nunca afirma uma polaridade. O cabo USB de dados sozinho não fornece a tensão do jack DC.")
+        Text("Identidade autenticada APOLO: o núcleo criptográfico HMAC-SHA256 para o agente do notebook foi criado. Ele só confirma o S2065 quando recebe uma prova válida, um desafio recente e uma chave provisionada. A camada de transporte USB direto ainda depende de suporte do host/Android e do agente instalado no notebook; esta versão não finge que o cabo comum já fornece essa comunicação.")
         Text("Estado de segurança: saída de energia BLOQUEADA. A detecção USB não confirma compatibilidade elétrica.")
         Text("USB-A do notebook é normalmente uma porta de saída de dados/energia, não uma entrada para carregar o notebook.")
     }
