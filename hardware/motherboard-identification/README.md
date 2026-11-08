@@ -75,16 +75,19 @@ Do not upload motherboard images or identifiers to a cloud service by default. L
 - OS/firmware inventory: existing read-only host agent implementation.
 - Optical sensor hardware: not designed to a purchasable BOM; no board fabricated.
 - Camera transport and authenticated capture protocol: not implemented.
-- OCR and motherboard catalogue: not implemented.
+- Local Tesseract OCR proof-of-concept: implemented in `host-agent/board_ocr.py`; requires Tesseract installed on the host.
+- Versioned catalogue schema: added as `host-agent/board_catalogue.json`, intentionally empty until authoritative S2065 board evidence is obtained.
+- HTTP image-ingestion endpoint: `POST /v1/board-inspection` on the loopback-only host agent; accepts JPEG/PNG/WebP up to 8 MiB, processes locally, and does not retain the image.
+- Electronic evidence: host agent now exposes raw baseboard/system/BIOS fields with source provenance; these remain informational.
 - Exact Positivo Unique TV S2065 motherboard code/revision: UNKNOWN.
 - DC jack polarity: UNMEASURED.
 - Laptop power output: remains blocked.
 
 ## Next engineering gates
 
-1. Extend host inventory output with explicit raw SMBIOS baseboard fields and provenance.
-2. Implement a local OCR proof-of-concept against sample images of known board markings.
-3. Select camera/optics only after measuring the physical working distance and confirming a safe line of sight on the exact chassis.
+1. Populate the catalogue only from authoritative service documentation or technician-verified board evidence; do not add guessed S2065 codes.
+2. Validate OCR with real, permissioned sample images covering blur, glare, low light, and angled silkscreen.
+3. Select camera/optics only after measuring working distance and confirming a safe line of sight on the exact chassis.
 4. Build and bench-test a standalone optical module before any laptop installation.
-5. Create a versioned catalogue with authoritative references and board-revision distinctions.
-6. Integrate authenticated results into the host agent and Android app.
+5. Add authenticated sensor transport and a signed capture envelope; the current HTTP endpoint is loopback-only development plumbing, not device authentication.
+6. Integrate reviewed identification results into the Android app.
