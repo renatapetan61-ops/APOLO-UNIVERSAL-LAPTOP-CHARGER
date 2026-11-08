@@ -17,6 +17,51 @@ on:
   workflow_dispatch:
 
 jobs:
+  virtual-sensor-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Compile and execute seven virtual sensor adapters
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/apolo-sensor-output
+          rustc bms-virtual-sensors/rust/src/main.rs -o /tmp/apolo-rust-sensor
+          /tmp/apolo-rust-sensor > /tmp/apolo-sensor-output/rust.json
+          python bms-virtual-sensors/python/sensor.py > /tmp/apolo-sensor-output/python.json
+          (cd bms-virtual-sensors/go && go run main.go) > /tmp/apolo-sensor-output/go.json
+          ruby bms-virtual-sensors/ruby/sensor.rb > /tmp/apolo-sensor-output/ruby.json
+          cc -Wall -Wextra -Werror bms-virtual-sensors/c/sensor.c -o /tmp/apolo-c-sensor
+          /tmp/apolo-c-sensor > /tmp/apolo-sensor-output/c.json
+          c++ -std=c++17 -Wall -Wextra -Werror bms-virtual-sensors/cpp/sensor.cpp -o /tmp/apolo-cpp-sensor
+          /tmp/apolo-cpp-sensor > /tmp/apolo-sensor-output/cpp.json
+          dotnet new console --output /tmp/apolo-csharp --framework net8.0 --no-restore
+          cp bms-virtual-sensors/csharp/Program.cs /tmp/apolo-csharp/Program.cs
+          dotnet run --project /tmp/apolo-csharp --no-restore > /tmp/apolo-sensor-output/csharp.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for path in sorted(Path("/tmp/apolo-sensor-output").glob("*.json")):
+              data = json.loads(path.read_text())
+              assert data["protocol"] == "apolo-bms-telemetry/1", path
+              assert data["source_type"] == "SIMULATED", path
+              assert data["hardware_backed"] is False, path
+              assert data["output_authorized"] is False, path
+              assert data["sensor"] == "pack_temperature", path
+              print(f"PASS {path.stem}: {data['source_id']}")
+          assert len(list(Path("/tmp/apolo-sensor-output").glob("*.json"))) == 7
+          PY
+
   simulator-tests:
     runs-on: ubuntu-latest
     steps:
@@ -28,6 +73,7 @@ jobs:
         run: python -m unittest discover -s simulator -p "test_*.py" -v
 
   android:
+    needs: [simulator-tests, virtual-sensor-contract]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
