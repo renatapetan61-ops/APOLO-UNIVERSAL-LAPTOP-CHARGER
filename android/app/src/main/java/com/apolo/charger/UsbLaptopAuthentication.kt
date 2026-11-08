@@ -63,7 +63,7 @@ object UsbLaptopAuthentication {
         val mac = Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(key, "HmacSHA256"))
         mac.update(modelId.toByteArray(Charsets.UTF_8))
-        mac.update(0)
+        mac.update(0.toByte())
         mac.update(nonce)
         return mac.doFinal()
     }
