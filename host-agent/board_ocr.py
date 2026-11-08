@@ -7,6 +7,7 @@ import json
 import re
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
@@ -112,6 +113,7 @@ def inspect_image(image: bytes, electronic_evidence: dict,
     all_candidates: dict[tuple[str, str], dict] = {}
     used_variants = []
     variants = _image_variants(image)
+    deadline = time.monotonic() + max(1, min(timeout, 60))
     with tempfile.TemporaryDirectory(prefix="apolo-amis-") as tmp:
         root = Path(tmp)
         try:
@@ -119,9 +121,12 @@ def inspect_image(image: bytes, electronic_evidence: dict,
                 source = root / (variant_name + (".png" if variant_name != "original" else "." + kind))
                 source.write_bytes(variant_data)
                 for psm in ("11", "6"):
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise subprocess.TimeoutExpired("tesseract", timeout)
                     proc = subprocess.run(
                         ["tesseract", str(source), "stdout", "--psm", psm, "tsv"],
-                        capture_output=True, text=True, timeout=max(1, min(timeout, 60)), check=False,
+                        capture_output=True, text=True, timeout=remaining, check=False,
                     )
                     if proc.returncode == 0:
                         used_variants.append(variant_name + "/psm-" + psm)
