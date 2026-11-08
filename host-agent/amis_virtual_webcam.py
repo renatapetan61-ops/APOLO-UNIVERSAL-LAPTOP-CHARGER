@@ -10,6 +10,9 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+import json
+import urllib.error
+import urllib.request
 
 import cv2
 import numpy as np
@@ -23,6 +26,8 @@ def main() -> int:
     parser.add_argument("--height", type=int, default=720)
     parser.add_argument("--fps", type=float, default=30.0)
     parser.add_argument("--backend", choices=("obs", "unitycapture"), default=None)
+    parser.add_argument("--amis-url", default=None, help="Optional AMIS frame endpoint, e.g. http://127.0.0.1:8765/v1/virtual-camera/frames")
+    parser.add_argument("--inspect-interval", type=float, default=2.0, help="Seconds between OCR submissions when --amis-url is set")
     args = parser.parse_args()
 
     if args.width < 320 or args.height < 240 or not (1 <= args.fps <= 60):
@@ -37,6 +42,7 @@ def main() -> int:
     capture.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
     capture.set(cv2.CAP_PROP_FPS, args.fps)
 
+    last_inspection = 0.0
     try:
         with pyvirtualcam.Camera(
             width=args.width,
@@ -58,6 +64,24 @@ def main() -> int:
                     bgr = cv2.resize(bgr, (args.width, args.height), interpolation=cv2.INTER_AREA)
                 rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
                 virtual_camera.send(np.ascontiguousarray(rgb))
+                if args.amis_url and time.monotonic() - last_inspection >= max(0.5, args.inspect_interval):
+                    encoded_ok, encoded = cv2.imencode(".jpg", bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
+                    if encoded_ok:
+                        request = urllib.request.Request(
+                            args.amis_url,
+                            data=encoded.tobytes(),
+                            headers={"Content-Type": "image/jpeg", "X-AMIS-Source": "windows-uvc-virtualcam"},
+                            method="POST",
+                        )
+                        try:
+                            with urllib.request.urlopen(request, timeout=25) as response:
+                                result = json.loads(response.read().decode("utf-8"))
+                            print("AMIS:", result.get("result", "UNKNOWN"),
+                                  "| OCR candidates:", len(result.get("ocr_candidates", [])),
+                                  "| exact code:", result.get("exact_board_code"))
+                        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+                            print(f"AMIS submission failed: {exc}", file=sys.stderr)
+                    last_inspection = time.monotonic()
                 virtual_camera.sleep_until_next_frame()
     except KeyboardInterrupt:
         print("\nStopped.")
