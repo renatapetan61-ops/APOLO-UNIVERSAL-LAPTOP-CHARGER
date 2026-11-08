@@ -206,14 +206,21 @@ def amis_status() -> dict:
             },
         },
         "image_sources": {
-            "android_camera_x": {
+            "android_camera": {
                 "transport": "HTTP POST /v1/virtual-camera/frames",
                 "connection": "owner-authorized ADB reverse bridge or same-host loopback",
-                "status": "AVAILABLE_AS_CLIENT; physical connection not asserted",
+                "status": "CLIENT_ENDPOINT_AVAILABLE; phone camera must be opened by the Android app",
             },
             "usb_uvc_camera": {
                 "transport": "host-local OpenCV capture via /v1/camera/capture",
-                "status": "OPTIONAL; hardware presence must be checked separately",
+                "discovery": discover_cameras(),
+                "status": "DETECTED_ONLY_IF_ENUMERATED; physical optical access still required",
+            },
+            "shared_pipeline": {
+                "core": "AMIS Virtual Camera Core",
+                "vision": "AMIS Motherboard Vision Engine",
+                "accepts_multiple_sources": True,
+                "fusion_policy": "per-frame OCR with source provenance; no false stereo/depth reconstruction",
             },
         },
         "inspection_requirements": {
