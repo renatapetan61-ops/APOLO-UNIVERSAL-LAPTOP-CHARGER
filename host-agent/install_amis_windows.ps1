@@ -10,6 +10,7 @@ if (-not (Test-Path $Venv)) { py -3 -m venv $Venv }
 $VenvPython = Join-Path $Venv "Scripts\python.exe"
 & $VenvPython -m pip install --upgrade pip
 if (Test-Path (Join-Path $Root "requirements-vision.txt")) { & $VenvPython -m pip install -r (Join-Path $Root "requirements-vision.txt") }
+if (Test-Path (Join-Path $Root "requirements-virtual-webcam.txt")) { & $VenvPython -m pip install -r (Join-Path $Root "requirements-virtual-webcam.txt") }
 & $VenvPython -m py_compile $Agent (Join-Path $Root "amis_hardware_mapper.py") (Join-Path $Root "amis_virtual_camera.py") (Join-Path $Root "amis_vision_engine.py")
 $Startup = [Environment]::GetFolderPath("Startup")
 $ShortcutPath = Join-Path $Startup "APOLO AMIS Host Agent.lnk"
