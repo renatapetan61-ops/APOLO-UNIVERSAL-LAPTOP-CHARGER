@@ -41,6 +41,10 @@ Projeto integrado de aplicativo Android, simulador e arquitetura de referência 
 - `simulator/`: descrição do simulador local.
 - `docs/`: arquitetura, compatibilidade, limites elétricos e roadmap de engenharia.
 
+## Identificação automática da placa-mãe
+
+Consulte [APOLO Motherboard Identification Sensor](hardware/motherboard-identification/README.md). A proposta combina inventário SMBIOS/DMI já disponível no agente host com um futuro módulo óptico macro para leitura OCR de inscrições, condicionado a linha de visão física segura. O código exato da placa-mãe do S2065 permanece desconhecido até a coleta de evidências.
+
 ## Sensor interno e agente embarcado
 
 Consulte [Hardware Internal DC Sensor](hardware/internal-dc-sensor/README.md), [protocolo de telemetria](protocols/internal_dc_sensor_v1.md) e [roadmap](docs/INTERNAL_SENSOR_ROADMAP.md). O sensor exige identificação da revisão exata da placa-mãe, projeto eletrônico protegido, firmware em microcontrolador dedicado, calibração e validação em bancada. Não há polaridade confirmada para o S2065 e nenhum circuito deve ser ligado à placa por tentativa.
