@@ -27,17 +27,23 @@ Projeto integrado de aplicativo Android, simulador e arquitetura de referência 
 - Decoder binário de telemetria v1, somente leitura, com validação de tamanho, magic, versão, CRC e faixas de plausibilidade.
 - Testes unitários do decoder.
 - GitHub Actions executa testes, compila APK debug e publica o APK como artefato por 14 dias.
-- Documentação de arquitetura, compatibilidade, protocolo, requisitos do BMS e status de desenvolvimento.
+- Agente host read-only para inventário de hardware/firmware e telemetria exposta pelo sistema operacional.
+- Especificação preliminar do sensor interno DC e contrato de telemetria autenticada (hardware ainda não construído).
 
 ## Estrutura
 
 - `android/`: aplicativo Android.
 - `bms/`: requisitos e princípios de segurança do BMS proprietário.
 - `power-module/`: arquitetura preliminar do módulo.
-- `protocols/`: protocolo de telemetria read-only.
+- `hardware/internal-dc-sensor/`: arquitetura do sensor interno DC; ainda sem esquemático de fabricação.
+- `protocols/`: protocolo de telemetria read-only e contrato draft do sensor interno.
+- `host-agent/`: agente de inventário read-only.
 - `simulator/`: descrição do simulador local.
-- `docs/`: arquitetura, compatibilidade e estado do projeto.
-- `.github/workflows/`: CI e artefato APK.
+- `docs/`: arquitetura, compatibilidade, limites elétricos e roadmap de engenharia.
+
+## Sensor interno e agente embarcado
+
+Consulte [Hardware Internal DC Sensor](hardware/internal-dc-sensor/README.md), [protocolo de telemetria](protocols/internal_dc_sensor_v1.md) e [roadmap](docs/INTERNAL_SENSOR_ROADMAP.md). O sensor exige identificação da revisão exata da placa-mãe, projeto eletrônico protegido, firmware em microcontrolador dedicado, calibração e validação em bancada. Não há polaridade confirmada para o S2065 e nenhum circuito deve ser ligado à placa por tentativa.
 
 ## Segurança — limites obrigatórios
 
@@ -62,6 +68,9 @@ O APK debug é produzido em `android/app/build/outputs/apk/debug/app-debug.apk` 
 ## O que falta para o produto completo
 
 - Firmware e placa BMS reais, sensores e medição validada.
+- Esquemático, BOM e PCB do sensor interno DC, projetados para a revisão exata da placa.
+- Firmware MCU e comunicação autenticada com o host agent.
+- Integração do sensor à tela Android.
 - Projeto elétrico completo do pack, carregador AC, conversores, saídas e proteções.
 - Transporte USB/BLE implementado e testado com hardware.
 - Negociação USB-C PD e perfis DC validados.
