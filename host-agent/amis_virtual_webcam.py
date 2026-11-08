@@ -71,6 +71,7 @@ def main() -> int:
                     continue
                 if bgr.shape[1] != args.width or bgr.shape[0] != args.height:
                     bgr = cv2.resize(bgr, (args.width, args.height), interpolation=cv2.INTER_AREA)
+                inspection_bgr = bgr.copy()
                 if args.hardware_map_url:
                     panel = np.zeros((args.height, 360, 3), dtype=np.uint8)
                     panel[:] = (24, 36, 48)
@@ -87,7 +88,7 @@ def main() -> int:
                 rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
                 virtual_camera.send(np.ascontiguousarray(rgb))
                 if args.amis_url and time.monotonic() - last_inspection >= max(0.5, args.inspect_interval):
-                    encoded_ok, encoded = cv2.imencode(".jpg", bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
+                    encoded_ok, encoded = cv2.imencode(".jpg", inspection_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
                     if encoded_ok:
                         request = urllib.request.Request(
                             args.amis_url,
