@@ -16,6 +16,7 @@ import socket
 import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from board_ocr import inspect_image
 
 HOST, PORT = "127.0.0.1", 8765
 PROTOCOL = "apolo-host-agent/2"
@@ -113,6 +114,43 @@ def mac_inventory() -> dict:
     return {"inventory_error": "system_profiler unavailable"}
 
 
+
+def board_identity_evidence(inventory: dict) -> dict:
+    """Preserve raw electronic board identity clues and their provenance."""
+    if platform.system() == "Linux":
+        raw = inventory.get("firmware_hardware", {})
+        fields = {
+            "manufacturer": raw.get("board_manufacturer"),
+            "product": raw.get("board_name"),
+            "version": raw.get("product_version"),
+            "system_manufacturer": raw.get("manufacturer"),
+            "system_model": raw.get("product_name"),
+            "bios_vendor": raw.get("bios_vendor"),
+            "bios_version": raw.get("bios_version"),
+        }
+    elif platform.system() == "Windows":
+        board = inventory.get("baseboard", {})
+        computer = inventory.get("computer", {})
+        bios = inventory.get("bios", {})
+        fields = {
+            "manufacturer": board.get("manufacturer"),
+            "product": board.get("product"),
+            "version": board.get("version"),
+            "system_manufacturer": computer.get("manufacturer"),
+            "system_model": computer.get("model"),
+            "bios_vendor": bios.get("manufacturer"),
+            "bios_version": bios.get("version"),
+        }
+    else:
+        fields = {"note": "Platform-specific baseboard mapping unavailable"}
+    return {
+        "source": "OS/SMBIOS/WMI; informational, not cryptographic proof",
+        "raw_fields": fields,
+        "exact_board_code": None,
+        "result": "UNKNOWN",
+    }
+
+
 def snapshot() -> dict:
     system = platform.system()
     result = {
@@ -150,6 +188,33 @@ def snapshot() -> dict:
 
 
 class Handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        if self.path != "/v1/board-inspection":
+            self.send_error(404)
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length < 1 or length > 8 * 1024 * 1024:
+                self.send_error(413)
+                return
+            image_data = self.rfile.read(length)
+            if len(image_data) != length:
+                self.send_error(400)
+                return
+            evidence = snapshot().get("motherboard_electronic_evidence", {})
+            result = inspect_image(
+                image_data, evidence, Path(__file__).with_name("board_catalogue.json")
+            )
+            body = json.dumps(result, separators=(",", ":"), default=str).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+        except (ValueError, OSError):
+            self.send_error(400)
+
     def do_GET(self):
         if self.path != "/v1/inventory":
             self.send_error(404)
