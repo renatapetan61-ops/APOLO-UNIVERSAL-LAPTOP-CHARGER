@@ -64,7 +64,7 @@ $VenvPython = Join-Path $Venv "Scripts\python.exe"
 & $VenvPython -m pip install --upgrade pip
 if (Test-Path (Join-Path $InstallRoot "requirements-vision.txt")) { & $VenvPython -m pip install -r (Join-Path $InstallRoot "requirements-vision.txt") }
 if (Test-Path (Join-Path $InstallRoot "requirements-virtual-webcam.txt")) { & $VenvPython -m pip install -r (Join-Path $InstallRoot "requirements-virtual-webcam.txt") }
-& $VenvPython -m py_compile $Agent (Join-Path $InstallRoot "amis_hardware_mapper.py") (Join-Path $InstallRoot "amis_virtual_camera.py") (Join-Path $InstallRoot "amis_vision_engine.py")
+& $VenvPython -m py_compile $Agent (Join-Path $InstallRoot "apolo_diagnostics.py") (Join-Path $InstallRoot "apolo_virtual_ics.py") (Join-Path $InstallRoot "amis_hardware_mapper.py") (Join-Path $InstallRoot "amis_virtual_camera.py") (Join-Path $InstallRoot "amis_vision_engine.py")
 if ($LASTEXITCODE -ne 0) { throw "Falha na verificação de sintaxe dos módulos AMIS." }
 $Startup = [Environment]::GetFolderPath("Startup")
 $ShortcutPath = Join-Path $Startup "APOLO AMIS Host Agent.lnk"
