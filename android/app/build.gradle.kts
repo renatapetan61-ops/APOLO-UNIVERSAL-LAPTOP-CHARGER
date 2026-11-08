@@ -16,6 +16,26 @@ android {
         versionName = "0.7.0"
     }
 
+    signingConfigs {
+        create("release") {
+            val releaseStoreFile = System.getenv("APOLO_RELEASE_STORE_FILE")
+            if (!releaseStoreFile.isNullOrBlank()) {
+                storeFile = file(releaseStoreFile)
+                storePassword = System.getenv("APOLO_RELEASE_STORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("APOLO_RELEASE_KEY_ALIAS") ?: ""
+                keyPassword = System.getenv("APOLO_RELEASE_KEY_PASSWORD") ?: ""
+            }
+        }
+    }
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            if (!System.getenv("APOLO_RELEASE_STORE_FILE").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
+
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
