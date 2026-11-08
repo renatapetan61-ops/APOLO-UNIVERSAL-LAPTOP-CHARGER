@@ -13,6 +13,7 @@ import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+from apolo_virtual_ics import ApoloVirtualIcRuntime
 
 
 def _run(args: list[str], timeout: int = 12) -> str | None:
@@ -145,8 +146,10 @@ def run_diagnostics() -> dict:
     else:
         findings = []
 
-    # No repair is claimed: this release has no approved, verifiable mutation actions.
+    # Execute four independent virtual controllers over OS-derived evidence.
+    # No repair is claimed: no approved, verifiable mutation actions exist yet.
     corrected: list[dict] = []
+    virtual_runtime = ApoloVirtualIcRuntime().execute(findings)
     return {
         "protocol": "apolo-diagnostic-report/1",
         "completed_at": datetime.now(timezone.utc).isoformat(),
@@ -156,12 +159,8 @@ def run_diagnostics() -> dict:
             "architecture": platform.machine(),
             "hostname": platform.node(),
         },
-        "chips": {
-            "APOLO-BMS-IC": {"state": "EXECUTED", "role": "sensor-data validation and battery evidence supervision"},
-            "APOLO-CHARGE-IC": {"state": "EXECUTED", "role": "power and charging telemetry assessment"},
-            "APOLO-SAFETY-IC": {"state": "EXECUTED", "role": "independent software safety policy evaluation"},
-            "APOLO-USB-PD-IC": {"state": "EXECUTED", "role": "USB transport and capability evidence assessment"},
-        },
+        "virtual_ic_runtime": virtual_runtime,
+        "chips": {item["id"]: item for item in virtual_runtime["chips"]},
         "sensors": {
             "source": "host-operating-system",
             "mode": "VIRTUAL_SOFTWARE_SENSORS",
