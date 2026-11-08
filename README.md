@@ -18,6 +18,15 @@ Projeto integrado de aplicativo Android, simulador e arquitetura de referência 
 
 19 V não é universal: cada notebook exige confirmação de tensão, corrente, polaridade, conector e identificação/protocolo do fabricante.
 
+## Diagnóstico APOLO e chips virtuais
+
+- Quatro controladores de software independentes: APOLO-BMS IC, APOLO-CHARGE IC, APOLO-SAFETY IC e APOLO-USB-PD IC.
+- Motor de sensores virtuais que aceita somente observações identificadas do sistema operacional; não inventa leituras físicas.
+- Endpoint local do agente `POST /v1/diagnostics/run`, executado sob solicitação explícita do usuário.
+- Tela **Reparar** no aplicativo Android e relatório final em pop-up dentro do próprio aplicativo.
+- Relatório diferencia erros encontrados, erros corrigidos e erros não corrigidos. Nesta etapa o agente é somente leitura e declara zero correções até existir uma ação segura com pós-condição verificada.
+- Os controladores virtuais são software executável, não chips físicos, não sensores físicos e não têm acesso mágico a componentes da placa-mãe.
+
 ## O que já existe
 
 - Aplicativo Android Kotlin + Jetpack Compose com Painel, Bateria, BMS, Conexão e Sobre.
@@ -37,7 +46,7 @@ Projeto integrado de aplicativo Android, simulador e arquitetura de referência 
 - `power-module/`: arquitetura preliminar do módulo.
 - `hardware/internal-dc-sensor/`: arquitetura do sensor interno DC; ainda sem esquemático de fabricação.
 - `protocols/`: protocolo de telemetria read-only e contrato draft do sensor interno.
-- `host-agent/`: agente de inventário read-only.
+- `host-agent/`: agente de inventário e diagnóstico read-only, runtime dos quatro ICs virtuais e testes.
 - `simulator/`: descrição do simulador local.
 - `docs/`: arquitetura, compatibilidade, limites elétricos e roadmap de engenharia.
 
@@ -76,7 +85,7 @@ O APK debug é produzido em `android/app/build/outputs/apk/debug/app-debug.apk` 
 - Firmware MCU e comunicação autenticada com o host agent.
 - Integração do sensor à tela Android.
 - Projeto elétrico completo do pack, carregador AC, conversores, saídas e proteções.
-- Transporte USB/BLE implementado e testado com hardware.
+- Transporte USB/ADB implementado e testado em dispositivos reais; o cabo comum não transfere software para cada componente da placa-mãe.
 - Negociação USB-C PD e perfis DC validados.
 - Testes em bancada, integração, falhas, térmica, EMC e certificações aplicáveis.
 - Instalação e teste do APK em aparelhos Android físicos.
