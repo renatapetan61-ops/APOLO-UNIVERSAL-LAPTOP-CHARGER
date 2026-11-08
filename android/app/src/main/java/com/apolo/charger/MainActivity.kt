@@ -149,7 +149,8 @@ private fun BmsScreen(scenario: DemoScenario, t: DemoTelemetry) {
     Text("O BMS é um subsistema de software desenvolvido do zero para integrar o Power Module; não é um produto separado.")
     ListItem(headlineContent = { Text("Motor de avaliação") }, supportingContent = { Text("Implementado em Kotlin: estados normal, alerta, crítico, dados inválidos e não configurado") })
     ListItem(headlineContent = { Text("Estimativa de carga") }, supportingContent = { Text("Estimador básico por contagem de coulombs; ainda não calibrado") })
-    ListItem(headlineContent = { Text("Telemetria de células e sensores") }, supportingContent = { Text("Somente simulada; não há sensores reais conectados") })
+    ListItem(headlineContent = { Text("Telemetria de células e sensores") }, supportingContent = { Text("Origem atual: SIMULADOR LOCAL. Nenhum ADC, termistor ou monitor de célula físico foi detectado.") })
+    ListItem(headlineContent = { Text("Proveniência dos dados") }, supportingContent = { Text("Cada adaptador de sensor deve declarar SIMULATED ou HARDWARE, identidade da fonte, timestamp e integridade. Dados virtuais nunca autorizam saída.") })
     ListItem(headlineContent = { Text("Estado do cenário") }, supportingContent = { Text("${scenario.label}: ${t.status}") })
     ListItem(headlineContent = { Text("Saída de potência") }, supportingContent = { Text("Bloqueada: software não substitui proteção elétrica independente") })
     SafetyNotice()
@@ -158,8 +159,8 @@ private fun BmsScreen(scenario: DemoScenario, t: DemoTelemetry) {
 @Composable
 private fun AboutScreen() {
     Text("Sobre o projeto", style = MaterialTheme.typography.headlineMedium)
-    Text("APOLO Universal Laptop Charger — versão 0.4.0")
-    Text("Aplicativo em desenvolvimento, com painel e simulador local. Não há conexão com bateria nem controle de energia.")
+    Text("APOLO Universal Laptop Charger — versão 0.7.0")
+    Text("Aplicativo em desenvolvimento. Leituras marcadas como SIMULADO são dados artificiais de teste; leituras reais só aparecem quando uma fonte de sensor identificada e validada estiver conectada. Não há controle de energia nesta versão.")
     Text("Metas de engenharia: até 240 W, 1.500 Wh LiFePO4 e saída DC pretendida de 19 V, sujeitas a projeto, compatibilidade e certificação.")
     SafetyNotice()
 }
