@@ -117,6 +117,29 @@ fun AmisMobileCameraPanel() {
             }, valueRange = 1f..8f)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(enabled = !busy, onClick = {
+                    busy = true
+                    status = "Verificando conexão com AMIS Virtual Camera Core..."
+                    Thread {
+                        val result = runCatching {
+                            val connection = URL("http://127.0.0.1:8765/v1/amis/status").openConnection() as HttpURLConnection
+                            connection.requestMethod = "GET"
+                            connection.connectTimeout = 4000
+                            connection.readTimeout = 6000
+                            val code = connection.responseCode
+                            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                            val body = stream?.bufferedReader()?.use { it.readText() } ?: "Resposta vazia"
+                            connection.disconnect()
+                            "AMIS HTTP $code\\n$body"
+                        }.getOrElse {
+                            "AMIS não conectado: ${it.message}. Inicie o APOLO Host Agent no notebook e configure a ponte ADB autorizada."
+                        }
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            status = result
+                            busy = false
+                        }
+                    }.start()
+                }) { Text("Conectar AMIS") }
+                Button(enabled = !busy, onClick = {
                     lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
                     status = "Alternando câmera..."
                 }) { Text("Alternar câmera") }
