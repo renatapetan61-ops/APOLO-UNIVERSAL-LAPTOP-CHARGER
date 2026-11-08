@@ -6,6 +6,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.usb.UsbManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import java.net.HttpURLConnection
+import java.net.URL
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +34,8 @@ private data class UsbScanState(
 fun ConnectionScreen() {
     val context = LocalContext.current
     var scan by remember { mutableStateOf(UsbScanState()) }
+    var cameraStatus by remember { mutableStateOf("Câmera AMIS ainda não verificada.") }
+    var cameraBusy by remember { mutableStateOf(false) }
 
     fun refresh() {
         val manager = context.getSystemService(Context.USB_SERVICE) as? UsbManager
@@ -43,6 +49,32 @@ fun ConnectionScreen() {
             match = PositivoUsbIdentity.classify(fingerprints),
             hostApiAvailable = manager != null
         )
+    }
+
+
+    fun callHostAgent(path: String, method: String = "GET") {
+        cameraBusy = true
+        Thread {
+            val result = runCatching {
+                val connection = (URL("http://127.0.0.1:8765$path").openConnection() as HttpURLConnection)
+                connection.requestMethod = method
+                connection.connectTimeout = 2500
+                connection.readTimeout = 25000
+                connection.setRequestProperty("Cache-Control", "no-store")
+                if (method == "POST") connection.doOutput = true
+                val response = (if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream)
+                    .bufferedReader().use { it.readText() }
+                connection.disconnect()
+                response
+            }.fold(
+                onSuccess = { it },
+                onFailure = { "Agente indisponível. Verifique se está instalado e se a ponte USB autorizada está ativa. Detalhe: ${it.message}" }
+            )
+            Handler(Looper.getMainLooper()).post {
+                cameraStatus = result
+                cameraBusy = false
+            }
+        }.start()
     }
 
     DisposableEffect(context) {
@@ -88,6 +120,15 @@ fun ConnectionScreen() {
                 scan.descriptions.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
         }
+        Text("Módulo óptico AMIS", style = MaterialTheme.typography.titleMedium)
+        Button(onClick = { callHostAgent("/v1/camera") }, enabled = !cameraBusy, modifier = Modifier.fillMaxWidth()) {
+            Text(if (cameraBusy) "Consultando agente..." else "Procurar câmera macro USB")
+        }
+        Button(onClick = { callHostAgent("/v1/camera/capture", "POST") }, enabled = !cameraBusy, modifier = Modifier.fillMaxWidth()) {
+            Text("Capturar inscrição da placa-mãe")
+        }
+        Text(cameraStatus, style = MaterialTheme.typography.bodySmall)
+        Text("A captura só funciona quando o agente está em execução no notebook e a ponte autorizada adb reverse tcp:8765 tcp:8765 está ativa. Uma webcam UVC comum pode ser detectada, mas isso não prova que tenha lente macro ou veja a placa dentro do gabinete.")
         Text("Limitação importante: ao ligar o celular por cabo USB comum ao notebook, normalmente o notebook é o host USB e o celular é o periférico. Nesse cenário, o Android não recebe a identidade do notebook pela API USB Host. A enumeração acima só mostra periféricos que o celular consegue hospedar, por exemplo via OTG.")
         Text("Identificação do Positivo: para confirmar o modelo de verdade, será necessário um agente no notebook que responda a um desafio criptográfico por um canal de dados compatível, ou uma interface APOLO dedicada. Nome Bluetooth, nome USB ou VID/PID isolado não bastam para autenticação.")
         Text("Sensor interno de polaridade APOLO: o aplicativo agora contém um analisador de software que classifica amostras center-to-sleeve recebidas do ADC isolado do Power Module. Sem esse sinal físico, o estado permanece AGUARDANDO MEDIÇÃO e nunca afirma uma polaridade. O cabo USB de dados sozinho não fornece a tensão do jack DC.")
