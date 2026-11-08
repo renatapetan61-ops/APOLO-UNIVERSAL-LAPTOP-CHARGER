@@ -16,7 +16,7 @@ import socket
 import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from amis_camera import discover_cameras, capture_and_inspect
+from amis_camera import discover_cameras, capture_frame
 from amis_virtual_camera import AMISVirtualCameraCore
 from amis_vision_engine import AMISMotherboardVisionEngine
 
@@ -194,11 +194,20 @@ def snapshot() -> dict:
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/v1/camera/capture":
+            image_data, source_info = capture_frame()
+            if image_data is None:
+                body = json.dumps(source_info, separators=(",", ":")).encode()
+                self.send_response(503)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
+                return
             try:
-                result = capture_and_inspect(
-                    snapshot().get("motherboard_electronic_evidence", {}),
-                    Path(__file__).with_name("board_catalogue.json")
-                )
+                frame = VIRTUAL_CAMERA.ingest(image_data, source_id="uvc-camera-0")
+                result = VISION_ENGINE.inspect(frame, snapshot().get("motherboard_electronic_evidence", {}), Path(__file__).with_name("board_catalogue.json"))
+                result["physical_source"] = source_info
                 body = json.dumps(result, separators=(",", ":"), default=str).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
