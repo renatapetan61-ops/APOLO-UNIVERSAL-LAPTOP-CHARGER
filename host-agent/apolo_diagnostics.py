@@ -88,7 +88,7 @@ def _windows_checks() -> list[dict]:
     $bad = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue |
       Where-Object { $_.ConfigManagerErrorCode -ne $null -and $_.ConfigManagerErrorCode -ne 0 } |
       Select-Object -First 80 Name,PNPDeviceID,ConfigManagerErrorCode)
-    $bad | ConvertTo-Json -Depth 4 -Compress
+    if ($bad.Count -eq 0) { '[]' } else { ConvertTo-Json -InputObject @($bad) -Depth 4 -Compress }
     """
     output = _run(["powershell", "-NoProfile", "-NonInteractive",
                    "-Command", script], 18) or _run(
