@@ -1,32 +1,23 @@
-# Android-to-Windows AMIS bootstrap
+# Android-to-Windows AMIS bootstrap and approval
 
-## Intended user flow
+## User flow
 
-1. Install/open APOLO Charger on Android.
-2. Connect the phone to the Windows notebook with a USB data cable.
-3. In APOLO Charger, open **Conexão** and tap **Preparar instalador Windows**.
-4. Save `install_amis_windows.ps1` to the phone using the Android document picker.
-5. Change the phone's USB mode to **File transfer (MTP)** if Android asks, then copy the saved script to the Windows notebook.
-6. On Windows, open PowerShell in the copied file's folder and run:
-   ```powershell
-   .\install_amis_windows.ps1
-   ```
-7. Review the script prompt and type `INSTALAR` only if you approve. The script downloads the repository and official Android Platform Tools over HTTPS, installs the local Python agent in the current user's LocalAppData, and starts it.
-8. Enable Android USB debugging and accept the RSA authorization prompt for this computer. The agent attempts `adb reverse tcp:8765 tcp:8765` when it starts.
-9. Return to APOLO Charger and tap **Conectar e verificar agente AMIS no notebook**. If the reverse bridge is authorized, the app should receive the agent's AMIS status.
-10. The camera inspection upload endpoint is then reachable through the reverse bridge.
+1. Open APOLO Charger on Android and connect the phone to the Windows notebook with a USB data cable.
+2. On the Connection screen, tap **Preparar instalador Windows** and save `install_amis_windows.ps1`.
+3. Enable USB file transfer (MTP) if prompted and copy the script to the Windows notebook.
+4. On Windows, open PowerShell in the copied file's folder and run `./install_amis_windows.ps1`.
+5. The script downloads the repository archive to a temporary folder, checks for Python 3.11+ and configures the official Android Platform Tools. It does not yet install the AMIS Host Agent.
+6. Enable USB debugging on Android and accept the RSA authorization dialog for this Windows computer.
+7. The Windows installer creates an ADB reverse tunnel on port 8766 and starts the temporary approval server bound only to 127.0.0.1. The PowerShell window displays a six-digit, one-time code and waits up to five minutes.
+8. In APOLO Charger, enter that code in **Código de autorização do Windows** and tap **Confirmar e autorizar instalação no notebook**.
+9. The app sends the one-time approval over the ADB USB reverse tunnel. Only after a valid approval does the PowerShell installer copy and install the Host Agent, create its per-user startup shortcut and start it.
+10. The app can then use the ADB reverse tunnel on port 8765 to check the running AMIS agent.
 
-## Why the Android app does not silently run the PowerShell file
+## Security boundaries
 
-A normal Android application cannot execute a Windows PowerShell script on a PC merely because a USB cable is attached. In this cable arrangement, Windows is normally the USB host and Android is the MTP/ADB device. Android must not assume permission to write arbitrary files to Windows or start arbitrary Windows processes. The implementation therefore exports the installer, asks the user to copy it, and requires an explicit confirmation in PowerShell. The subsequent ADB bridge also requires the user to enable USB debugging and approve the computer's RSA key.
-
-## Requirements and limitations
-
-- USB cable must support data, not charging-only.
-- Windows notebook must have Python 3.11+ with the `py` launcher.
-- The installer requires internet access to download the GitHub source archive and Google's official Android Platform Tools.
-- ADB reverse works only after USB debugging is enabled and the Android authorization dialog is accepted.
-- If USB debugging cannot be enabled, the app can still export the installer, but phone-to-agent live communication over the cable will not be available through ADB.
-- The agent binds to `127.0.0.1:8765`; it is not exposed to the LAN.
-- The installer does not flash firmware, alter motherboard components, install kernel camera drivers, or authorize electrical output.
-- Installing the agent is not the same as physically charging the laptop. Power output remains blocked until a separately engineered and validated power module, connector, polarity, sensor and independent protections exist.
+- The Android button is an application-level one-time approval, not a Windows UAC elevation or an OS permission grant. The script must first be launched by the user in Windows.
+- The temporary approval service binds only to loopback, uses a random six-digit code, constant-time comparison and a five-minute timeout. The ADB bridge requires the Android user to approve the RSA key.
+- The agent installation is per-user under `%LOCALAPPDATA%\APOLO\AMIS`; it does not install a kernel driver, change firmware, or write to motherboard components.
+- If the code expires or ADB authorization fails, the script stops before installing the Host Agent.
+- This flow does not authorize electrical output or prove that the notebook can safely be charged. Hardware power delivery remains separately disabled pending validated voltage, polarity, connector and independent protection circuitry.
+- USB cable must support data. Windows needs Python 3.11+ and internet access for GitHub and Google's official Android Platform Tools.
