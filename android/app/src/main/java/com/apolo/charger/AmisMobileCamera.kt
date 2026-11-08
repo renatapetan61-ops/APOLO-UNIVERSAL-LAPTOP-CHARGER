@@ -31,6 +31,7 @@ import androidx.core.content.ContextCompat
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import org.json.JSONObject
 import java.util.concurrent.Executors
 
 /** Uses the phone camera to photograph a motherboard that is physically visible. */
@@ -170,7 +171,19 @@ fun AmisMobileCameraPanel() {
                                     val stream = if (code in 200..299) connection.inputStream else connection.errorStream
                                     val body = stream?.bufferedReader()?.use { it.readText() } ?: "Resposta vazia do agente"
                                     connection.disconnect()
-                                    "HTTP $code\n$body"
+                                    if (code in 200..299) {
+                                        val json = JSONObject(body)
+                                        val resultCode = json.optString("result", "UNKNOWN")
+                                        val quality = json.optString("image_quality", "NOT_REPORTED")
+                                        val boardCode = json.optString("exact_board_code", "")
+                                        val boardLabel = if (boardCode.isBlank()) "não" else boardCode
+                                        val candidates = json.optJSONArray("ocr_candidates")?.length() ?: 0
+                                        val matches = json.optJSONArray("catalogue_matches")?.length() ?: 0
+                                        val source = json.optJSONObject("capture")?.optString("source_id", "unknown") ?: "unknown"
+                                        "AMIS: $resultCode\\nFonte: $source\\nQualidade: $quality\\nTextos OCR: $candidates\\nCorrespondências no catálogo: $matches\\nPlaca confirmada: $boardLabel\\n\\nA identificação visual não mede tensão ou polaridade e não libera a carga."
+                                    } else {
+                                        "Falha no AMIS (HTTP $code): $body"
+                                    }
                                 }.getOrElse {
                                     "Falha ao enviar ao agente: ${it.message}. Verifique o agente e a ponte USB/ADB autorizada."
                                 }
