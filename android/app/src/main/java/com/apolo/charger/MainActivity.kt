@@ -153,7 +153,7 @@ private fun BmsScreen(scenario: DemoScenario, t: DemoTelemetry) {
 }
 
 @Composable
-private fun ConnectionScreen() {
+private fun LegacyConnectionScreen() {
     val laptop = ApoloLaptopProfiles.POSITIVO_UNIQUE_TV_S2065
     Text("Conectividade", style = MaterialTheme.typography.headlineMedium)
     Text("Notebook-alvo: ${laptop.model}", style = MaterialTheme.typography.titleMedium)
