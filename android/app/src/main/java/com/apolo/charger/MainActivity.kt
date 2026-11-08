@@ -145,7 +145,28 @@ private fun BatteryScreen(t: DemoTelemetry) {
 
 @Composable
 private fun BmsScreen(scenario: DemoScenario, t: DemoTelemetry) {
+    val assessment = remember {
+        InternalBmsCore(profile = null, limits = null).assess(null, System.currentTimeMillis())
+    }
+    val outputDecision = remember {
+        ApoloPowerModuleCore(profile = null).evaluateOutputRequest(
+            ApoloOutputRequest(
+                type = ApoloOutputType.DC_BARREL,
+                requestedVoltageV = 19.0,
+                requestedPowerW = 65.0,
+                laptopProfileVerified = false
+            )
+        )
+    }
     Text("BMS interno APOLO — software", style = MaterialTheme.typography.headlineMedium)
+    ListItem(
+        headlineContent = { Text("Avaliação executada pelo núcleo Kotlin") },
+        supportingContent = { Text("Estado: ${assessment.state}. ${assessment.reasons.joinToString()}") }
+    )
+    ListItem(
+        headlineContent = { Text("Power Module Core") },
+        supportingContent = { Text(if (outputDecision.acceptedForHardware) "Solicitação aceita" else "Solicitação recusada: ${outputDecision.reason}") }
+    )
     Text("O BMS é um subsistema de software desenvolvido do zero para integrar o Power Module; não é um produto separado.")
     ListItem(headlineContent = { Text("Motor de avaliação") }, supportingContent = { Text("Implementado em Kotlin: estados normal, alerta, crítico, dados inválidos e não configurado") })
     ListItem(headlineContent = { Text("Estimativa de carga") }, supportingContent = { Text("Estimador básico por contagem de coulombs; ainda não calibrado") })
