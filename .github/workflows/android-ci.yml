@@ -65,8 +65,10 @@ jobs:
           test -n "$APOLO_RELEASE_KEY_PASSWORD" || { echo "Missing APOLO_RELEASE_KEY_PASSWORD"; exit 1; }
           echo "$APOLO_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$APOLO_RELEASE_STORE_FILE"
           chmod 600 "$APOLO_RELEASE_STORE_FILE"
+          echo "Validating release keystore and alias..."
+          keytool -list -keystore "$APOLO_RELEASE_STORE_FILE" -storepass "$APOLO_RELEASE_STORE_PASSWORD" -alias "$APOLO_RELEASE_KEY_ALIAS" -v
           gradle :android:app:assembleRelease
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/release/app-release.apk
           sha256sum android/app/build/outputs/apk/release/app-release.apk
           rm -f "$APOLO_RELEASE_STORE_FILE"
       - name: Upload signed release APK
