@@ -121,6 +121,7 @@ fun ConnectionScreen() {
             }
         }
         Text("Módulo óptico AMIS", style = MaterialTheme.typography.titleMedium)
+        AmisMobileCameraPanel()
         Button(onClick = { callHostAgent("/v1/camera") }, enabled = !cameraBusy, modifier = Modifier.fillMaxWidth()) {
             Text(if (cameraBusy) "Consultando agente..." else "Procurar câmera macro USB")
         }
