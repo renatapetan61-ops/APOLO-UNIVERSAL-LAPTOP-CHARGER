@@ -22,6 +22,16 @@ class VirtualCameraCoreTests(unittest.TestCase):
         )
         self.assertEqual(frame.source_id, "file-import")
 
+    def test_tracks_mobile_and_uvc_sources_in_one_virtual_camera_core(self):
+        core = AMISVirtualCameraCore()
+        core.ingest(b"\\xff\\xd8\\xffmobile", source_id="android-camerax")
+        core.ingest(b"\\xff\\xd8\\xffuvc", source_id="usb-uvc-camera-0")
+        status = core.status()
+        self.assertEqual(status["source_count"], 2)
+        by_source = {item["source_id"]: item for item in status["connected_image_sources_seen"]}
+        self.assertEqual(by_source["android-camerax"]["accepted_frames"], 1)
+        self.assertEqual(by_source["usb-uvc-camera-0"]["accepted_frames"], 1)
+
     def test_rejects_invalid_and_oversized_frames(self):
         core = AMISVirtualCameraCore()
         with self.assertRaises(ValueError):
