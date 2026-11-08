@@ -55,7 +55,7 @@ fun AmisMobileCameraPanel() {
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         permissionGranted = granted
-        status = if (granted) "Permissão concedida. Preparando câmera." else "Permissão da câmera negada."
+        status = if (granted) "Permissão concedida. Preparando câmera." else "Permissão da câmera negada. Autorize nas configurações do Android para usar a inspeção."
     }
 
     DisposableEffect(Unit) {
