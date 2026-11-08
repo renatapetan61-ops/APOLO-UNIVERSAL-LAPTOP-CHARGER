@@ -6,7 +6,7 @@ from apolo_host_agent import amis_status
 class AmisIntegratedStatusTests(unittest.TestCase):
     def test_camera_and_vision_are_reported_as_one_pipeline(self):
         payload = amis_status()
-        self.assertEqual(payload["protocol"], "amis-integrated-pipeline/1")
+        self.assertEqual(payload["protocol"], "amis-integrated-pipeline/2")
         self.assertIn("virtual_camera_core", payload["components"])
         self.assertIn("motherboard_vision_engine", payload["components"])
         self.assertIn("android_camera_x", payload["image_sources"])
