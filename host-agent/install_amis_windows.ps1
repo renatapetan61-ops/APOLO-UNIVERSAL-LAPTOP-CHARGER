@@ -4,7 +4,7 @@ Write-Host "APOLO AMIS — instalador do agente do notebook"
 Write-Host "O agente só será instalado após confirmação explícita no aplicativo Android."
 Write-Host "A autorização será feita por ADB USB e código temporário de seis dígitos."
 Write-Host "Este instalador não altera firmware nem habilita saída elétrica."
-$RepoZip = "https://github.com/renatapetan61-ops/APOLO-UNIVERSAL-LAPTOP-CHARGER/archive/refs/heads/main.zip"
+$RepoZip = "https://github.com/renatapetan61-ops/APOLO-UNIVERSAL-LAPTOP-CHARGER/archive/refs/heads/fix/runtime-bms-amis-ci.zip"
 $InstallRoot = Join-Path $env:LOCALAPPDATA "APOLO\AMIS"
 $PlatformTools = Join-Path $env:LOCALAPPDATA "APOLO\platform-tools"
 $Adb = Get-Command adb -ErrorAction SilentlyContinue
