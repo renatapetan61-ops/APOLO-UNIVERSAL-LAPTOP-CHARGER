@@ -111,10 +111,11 @@ def inspect_image(image: bytes, electronic_evidence: dict,
 
     all_candidates: dict[tuple[str, str], dict] = {}
     used_variants = []
+    variants = _image_variants(image)
     with tempfile.TemporaryDirectory(prefix="apolo-amis-") as tmp:
         root = Path(tmp)
         try:
-            for variant_name, variant_data in _image_variants(image):
+            for variant_name, variant_data in variants:
                 source = root / (variant_name + (".png" if variant_name != "original" else "." + kind))
                 source.write_bytes(variant_data)
                 for psm in ("11", "6"):
@@ -177,7 +178,7 @@ def inspect_image(image: bytes, electronic_evidence: dict,
         "image_quality": "OCR_TEXT_FOUND" if candidates else "NO_TEXT_DETECTED",
         "ocr_engine": "Tesseract TSV",
         "ocr_passes": used_variants,
-        "preprocessing_available": len(_image_variants(image)) > 1,
+        "preprocessing_available": len(variants) > 1,
         "ocr_candidates": candidates,
         "catalogue_matches": matches,
         "electronic_evidence": electronic_evidence,
