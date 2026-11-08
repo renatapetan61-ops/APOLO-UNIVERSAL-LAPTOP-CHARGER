@@ -22,7 +22,7 @@ from amis_vision_engine import AMISMotherboardVisionEngine
 from amis_hardware_mapper import map_components, render_svg
 
 HOST, PORT = "127.0.0.1", 8765
-PROTOCOL = "apolo-host-agent/3"
+PROTOCOL = "apolo-host-agent/4"
 VIRTUAL_CAMERA = AMISVirtualCameraCore()
 VISION_ENGINE = AMISMotherboardVisionEngine()
 
@@ -227,7 +227,7 @@ def snapshot() -> dict:
 def amis_status() -> dict:
     """Describe the complete camera-to-vision pipeline without claiming a camera is connected."""
     return {
-        "protocol": "amis-integrated-pipeline/1",
+        "protocol": "amis-integrated-pipeline/2",
         "status": "READY_FOR_IMAGE_SOURCE",
         "components": {
             "hardware_mapper": {"protocol": "amis-hardware-map/1", "status": "READ_ONLY_INVENTORY_AND_SVG_READY"},
