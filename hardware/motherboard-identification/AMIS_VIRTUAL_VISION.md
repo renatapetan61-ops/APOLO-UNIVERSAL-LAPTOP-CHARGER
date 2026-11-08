@@ -12,6 +12,7 @@ A separate local processing component. It invokes Tesseract TSV in two recogniti
 
 ## HTTP interface (loopback only)
 
+- `GET /v1/amis/status`: integrated status of the virtual camera, vision engine, Android CameraX input, optional UVC input, optical requirements, and fail-closed charging state. It does not claim that a camera is physically connected.
 - `GET /v1/virtual-camera/status`: virtual source state and last-frame metadata.
 - `POST /v1/virtual-camera/frames`: ingest a frame for local OCR. Headers: `Content-Type: image/jpeg|image/png|image/webp`; optional `X-AMIS-Source` (default `android-camerax`). Response is the vision-engine result.
 - Existing `POST /v1/board-inspection` remains compatible with the Android CameraX app and routes through both components.
