@@ -103,3 +103,29 @@ Play App Signing. Never commit a keystore or passwords. For a personally built
 debug APK, inspect the source and artifact provenance; if Android offers a
 `More details` / `Install anyway` option, use it only if you trust the build.
 Do not disable Play Protect globally to install an unverified APK.
+
+### Configure a stable release signature (optional)
+
+The repository now supports a signed release APK without storing signing keys in
+Git. Generate a private keystore on a trusted computer:
+
+```bash
+keytool -genkeypair -v -keystore apolo-release.jks -keyalg RSA -keysize 4096 -validity 10000 -alias apolo-release
+base64 -w0 apolo-release.jks
+```
+
+In GitHub repository **Settings → Secrets and variables → Actions**, add secrets:
+- `APOLO_RELEASE_KEYSTORE_BASE64`: the base64 output above
+- `APOLO_RELEASE_STORE_PASSWORD`
+- `APOLO_RELEASE_KEY_ALIAS` (for example, `apolo-release`)
+- `APOLO_RELEASE_KEY_PASSWORD`
+
+Add the Actions repository variable `APOLO_RELEASE_ENABLED=true`. The Android
+workflow will then produce a signed `app-release.apk` artifact. Keep at least
+two secure backups of the keystore and passwords. Losing the key prevents
+updates signed with the same app identity; never rotate it casually.
+
+A stable release signature is important for trusted updates, but it does not
+guarantee that Play Protect will stop warning about an app with limited
+reputation. For broad distribution and the strongest normal installation
+experience, publish through Google Play and use Play App Signing.
