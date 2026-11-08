@@ -6,6 +6,14 @@
 
 Identify the exact motherboard manufacturer, board code, PCB revision, and visible silkscreen markings without requiring the owner to take and upload a photograph. The system combines read-only firmware inventory with an optional optical inspection module. It must never guess a board identity.
 
+## Software vision architecture
+
+The implemented software path is split into two independent modules:
+- **AMIS Virtual Camera Core** (`host-agent/amis_virtual_camera.py`): source-agnostic image-frame intake, validation, frame IDs, timestamps and hashes. It accepts frames from the existing Android CameraX client or future image adapters.
+- **AMIS Motherboard Vision Engine** (`host-agent/amis_vision_engine.py`): local OCR and catalogue/electronic-evidence cross-check, independent of the image source.
+
+See [AMIS Virtual Vision](AMIS_VIRTUAL_VISION.md) for the HTTP API and limits. The existing Android endpoint `POST /v1/board-inspection` remains compatible and now passes images through both modules.
+
 ## Two independent identification channels
 
 ### Channel A — electronic inventory (no added sensor required)
@@ -81,7 +89,8 @@ Do not upload motherboard images or identifiers to a cloud service by default. L
 - End-to-end cryptographic camera authentication: not yet implemented. The current agent binds to loopback and relies on the owner-authorized ADB bridge as a transport boundary; do not treat this as device-level authentication.
 - Local Tesseract OCR proof-of-concept: implemented in `host-agent/board_ocr.py`; requires Tesseract installed on the host.
 - Versioned catalogue schema: added as `host-agent/board_catalogue.json`, intentionally empty until authoritative S2065 board evidence is obtained.
-- HTTP image-ingestion endpoint: `POST /v1/board-inspection` on the loopback-only host agent; accepts JPEG/PNG/WebP up to 8 MiB, processes locally, and does not retain the image.
+- HTTP image-ingestion endpoint: `POST /v1/board-inspection` and `POST /v1/virtual-camera/frames`; both accept JPEG/PNG/WebP up to 8 MiB and route through AMIS Virtual Camera Core and AMIS Motherboard Vision Engine. Images are processed locally and not retained.
+- Virtual camera status: `GET /v1/virtual-camera/status`; reports source-agnostic software camera state and last-frame metadata.
 - Electronic evidence: host agent now exposes raw baseboard/system/BIOS fields with source provenance; these remain informational.
 - Exact Positivo Unique TV S2065 motherboard code/revision: UNKNOWN.
 - DC jack polarity: UNMEASURED.
