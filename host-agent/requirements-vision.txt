@@ -1,0 +1,3 @@
+# Optional local image preprocessing for AMIS motherboard OCR.
+# Tesseract OCR must also be installed as a system executable.
+Pillow>=10,<13
