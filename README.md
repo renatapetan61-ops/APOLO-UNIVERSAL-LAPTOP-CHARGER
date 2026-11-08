@@ -43,7 +43,7 @@ Projeto integrado de aplicativo Android, simulador e arquitetura de referência 
 
 ## Identificação automática da placa-mãe
 
-Consulte [APOLO Motherboard Identification Sensor](hardware/motherboard-identification/README.md). A proposta combina inventário SMBIOS/DMI já disponível no agente host com um futuro módulo óptico macro para leitura OCR de inscrições, condicionado a linha de visão física segura. O código exato da placa-mãe do S2065 permanece desconhecido até a coleta de evidências.
+Consulte [APOLO Motherboard Identification Sensor](hardware/motherboard-identification/README.md). A integração das fontes CameraX Android e UVC, o relay opcional de webcam virtual no Windows e os limites físicos estão documentados em [AMIS Dual Camera Pipeline](hardware/motherboard-identification/AMIS_DUAL_CAMERA_PIPELINE.md). A proposta combina inventário SMBIOS/DMI já disponível no agente host com um futuro módulo óptico macro para leitura OCR de inscrições, condicionado a linha de visão física segura. O código exato da placa-mãe do S2065 permanece desconhecido até a coleta de evidências.
 
 ## Sensor interno e agente embarcado
 
