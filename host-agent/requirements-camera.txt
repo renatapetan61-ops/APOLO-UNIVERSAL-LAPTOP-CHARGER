@@ -1,0 +1,4 @@
+# Optional dependency for local UVC camera capture only.
+# The host agent and inventory/OCR tests remain importable without OpenCV.
+# Install on the notebook host with: python -m pip install -r requirements-camera.txt
+opencv-python-headless>=4.10,<5
