@@ -22,6 +22,10 @@ class AMISMotherboardVisionEngine:
                 catalogue_path: Path) -> dict:
         width, height = _dimensions(frame.data, frame.media_type)
         result = inspect_image(frame.data, electronic_evidence, catalogue_path)
+        result.setdefault("exact_board_code", None)
+        result.setdefault("ocr_candidates", [])
+        result.setdefault("catalogue_matches", [])
+        result.setdefault("image_retained", False)
         result.update({
             "vision_protocol": self.PROTOCOL,
             "capture": {
