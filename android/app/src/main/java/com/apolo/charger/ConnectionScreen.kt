@@ -105,6 +105,7 @@ fun ConnectionScreen() {
         Button(onClick = { refresh() }, modifier = Modifier.fillMaxWidth()) {
             Text("Verificar conexão USB agora")
         }
+        AmisWindowsInstallerTransferPanel()
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Resultado da verificação USB", style = MaterialTheme.typography.titleMedium)
