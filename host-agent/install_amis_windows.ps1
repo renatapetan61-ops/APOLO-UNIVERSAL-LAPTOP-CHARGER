@@ -1,11 +1,9 @@
 #requires -Version 5.1
 $ErrorActionPreference = "Stop"
 Write-Host "APOLO AMIS — instalador do agente do notebook"
-Write-Host "Este processo instala módulos locais de inventário e inspeção."
-Write-Host "Não instala drivers de câmera, não altera firmware e NÃO habilita saída elétrica."
-Write-Host "Será necessário confirmar a instalação nesta janela do Windows."
-$confirm = Read-Host "Digite INSTALAR para continuar"
-if ($confirm -cne "INSTALAR") { Write-Host "Instalação cancelada."; exit 0 }
+Write-Host "O agente só será instalado após confirmação explícita no aplicativo Android."
+Write-Host "A autorização será feita por ADB USB e código temporário de seis dígitos."
+Write-Host "Este instalador não altera firmware nem habilita saída elétrica."
 $RepoZip = "https://github.com/renatapetan61-ops/APOLO-UNIVERSAL-LAPTOP-CHARGER/archive/refs/heads/main.zip"
 $InstallRoot = Join-Path $env:LOCALAPPDATA "APOLO\AMIS"
 $PlatformTools = Join-Path $env:LOCALAPPDATA "APOLO\platform-tools"
@@ -34,6 +32,23 @@ try {
     if (-not $SourceRoot) { throw "Pacote do repositório vazio." }
     $SourceAgent = Join-Path $SourceRoot.FullName "host-agent"
     if (-not (Test-Path (Join-Path $SourceAgent "apolo_host_agent.py"))) { throw "Host Agent não encontrado no pacote." }
+    $ApprovalScript = Join-Path $SourceAgent "amis_install_approval.py"
+    if (-not (Test-Path $ApprovalScript)) { throw "Módulo de autorização AMIS não encontrado." }
+    Write-Host "Verificando autorização USB/ADB..."
+    & adb devices
+    & adb reverse tcp:8766 tcp:8766
+    if ($LASTEXITCODE -ne 0) {
+        throw "ADB não conseguiu criar a ponte USB. Ative Depuração USB e autorize este computador no celular."
+    }
+    Write-Host ""
+    Write-Host "ETAPA DE AUTORIZAÇÃO PELO APLICATIVO"
+    Write-Host "O código abaixo deve ser informado na tela Conexão do APOLO Charger."
+    Write-Host "Não feche esta janela. O instalador aguardará até cinco minutos."
+    & py -3 $ApprovalScript --port 8766 --timeout 300
+    if ($LASTEXITCODE -ne 0) {
+        throw "Instalação cancelada ou autorização do aplicativo não recebida. Nenhum Host Agent foi instalado."
+    }
+    Write-Host "Autorização recebida. Prosseguindo com a instalação..."
     if (Test-Path $InstallRoot) {
         Get-ChildItem -LiteralPath $InstallRoot -Force | Remove-Item -Recurse -Force
     }
