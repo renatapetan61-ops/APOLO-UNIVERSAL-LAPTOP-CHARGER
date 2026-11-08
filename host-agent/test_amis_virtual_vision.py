@@ -24,8 +24,8 @@ class VirtualCameraCoreTests(unittest.TestCase):
 
     def test_tracks_mobile_and_uvc_sources_in_one_virtual_camera_core(self):
         core = AMISVirtualCameraCore()
-        core.ingest(b"\\xff\\xd8\\xffmobile", source_id="android-camerax")
-        core.ingest(b"\\xff\\xd8\\xffuvc", source_id="usb-uvc-camera-0")
+        core.ingest(b"\xff\xd8\xffmobile", source_id="android-camerax")
+        core.ingest(b"\xff\xd8\xffuvc", source_id="usb-uvc-camera-0")
         status = core.status()
         self.assertEqual(status["source_count"], 2)
         by_source = {item["source_id"]: item for item in status["connected_image_sources_seen"]}
