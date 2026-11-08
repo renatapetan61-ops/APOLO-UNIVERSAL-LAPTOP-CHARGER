@@ -27,8 +27,8 @@ class VirtualCameraCoreTests(unittest.TestCase):
         core.ingest(b"\xff\xd8\xffmobile", source_id="android-camerax")
         core.ingest(b"\xff\xd8\xffuvc", source_id="usb-uvc-camera-0")
         status = core.status()
-        self.assertEqual(status["source_count"], 2)
-        by_source = {item["source_id"]: item for item in status["connected_image_sources_seen"]}
+        self.assertEqual(status["sources_seen_count"], 2)
+        by_source = {item["source_id"]: item for item in status["image_sources_seen"]}
         self.assertEqual(by_source["android-camerax"]["accepted_frames"], 1)
         self.assertEqual(by_source["usb-uvc-camera-0"]["accepted_frames"], 1)
 
