@@ -49,3 +49,24 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Build signed release APK (optional)
+        if: ${{ vars.APOLO_RELEASE_ENABLED == 'true' }}
+        env:
+          APOLO_RELEASE_KEYSTORE_BASE64: ${{ secrets.APOLO_RELEASE_KEYSTORE_BASE64 }}
+          APOLO_RELEASE_STORE_PASSWORD: ${{ secrets.APOLO_RELEASE_STORE_PASSWORD }}
+          APOLO_RELEASE_KEY_ALIAS: ${{ secrets.APOLO_RELEASE_KEY_ALIAS }}
+          APOLO_RELEASE_KEY_PASSWORD: ${{ secrets.APOLO_RELEASE_KEY_PASSWORD }}
+          APOLO_RELEASE_STORE_FILE: ${{ runner.temp }}/apolo-release.jks
+        run: |
+          test -n "$APOLO_RELEASE_KEYSTORE_BASE64"
+          echo "$APOLO_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$APOLO_RELEASE_STORE_FILE"
+          gradle :android:app:assembleRelease
+          rm -f "$APOLO_RELEASE_STORE_FILE"
+      - name: Upload signed release APK
+        if: ${{ vars.APOLO_RELEASE_ENABLED == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: apolo-charger-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
