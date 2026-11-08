@@ -1,5 +1,23 @@
 # AMIS — dual-source camera and real-board inspection
 
+## Integrated component mapping and camera pipeline
+
+The installed Host Agent includes **AMIS Hardware Mapper**. It reads component
+inventory exposed by Windows CIM/WMI or Linux DMI/sysfs/lspci and creates:
+- `GET /v1/hardware/map`: structured logical component inventory;
+- `GET /v1/hardware/map.svg`: an SVG schematic generated from that inventory.
+
+Windows inventory includes baseboard, CPU, GPUs, physical memory, disks,
+battery and selected Plug-and-Play controller/device records. Linux inventory
+uses DMI, /proc/cpuinfo, /proc/meminfo, sysfs block devices and lspci when
+available. Missing or permission-protected data is omitted, not guessed.
+
+The Windows virtual webcam relay can display the logical map beside a live
+real UVC camera feed using `--hardware-map-url http://127.0.0.1:8765/v1/hardware/map`.
+The diagram is a separate contextual panel; only real camera frames enter OCR.
+It does not claim that the host inventory has located physical parts inside
+the chassis or photographed the motherboard.
+
 ## One integrated pipeline
 
 ```text
@@ -39,7 +57,7 @@ Install and enable one compatible virtual-camera driver:
 Run from the host-agent directory:
 
 ```powershell
-py amis_virtual_webcam.py --device 0 --width 1280 --height 720 --fps 30 --backend obs --amis-url http://127.0.0.1:8765/v1/virtual-camera/frames
+py amis_virtual_webcam.py --device 0 --width 1280 --height 720 --fps 30 --backend obs --amis-url http://127.0.0.1:8765/v1/virtual-camera/frames --hardware-map-url http://127.0.0.1:8765/v1/hardware/map
 ```
 
 For Unity Capture, replace `obs` with `unitycapture`. If the selected backend
