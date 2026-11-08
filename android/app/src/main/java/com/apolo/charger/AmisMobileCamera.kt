@@ -133,12 +133,13 @@ fun AmisMobileCameraPanel() {
                                 val result = runCatching {
                                     val bytes = photo.readBytes()
                                     require(bytes.size <= 8 * 1024 * 1024) { "Imagem maior que o limite de 8 MiB" }
-                                    val connection = URL("http://127.0.0.1:8765/v1/board-inspection").openConnection() as HttpURLConnection
+                                    val connection = URL("http://127.0.0.1:8765/v1/virtual-camera/frames").openConnection() as HttpURLConnection
                                     connection.requestMethod = "POST"
                                     connection.connectTimeout = 5000
                                     connection.readTimeout = 60000
                                     connection.doOutput = true
                                     connection.setRequestProperty("Content-Type", "image/jpeg")
+                                    connection.setRequestProperty("X-AMIS-Source", "android-camerax")
                                     connection.setRequestProperty("Cache-Control", "no-store")
                                     connection.setFixedLengthStreamingMode(bytes.size)
                                     connection.outputStream.use { it.write(bytes) }
