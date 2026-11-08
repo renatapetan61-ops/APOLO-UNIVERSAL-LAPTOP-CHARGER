@@ -39,7 +39,7 @@ Install and enable one compatible virtual-camera driver:
 Run from the host-agent directory:
 
 ```powershell
-py amis_virtual_webcam.py --device 0 --width 1280 --height 720 --fps 30 --backend obs
+py amis_virtual_webcam.py --device 0 --width 1280 --height 720 --fps 30 --backend obs --amis-url http://127.0.0.1:8765/v1/virtual-camera/frames
 ```
 
 For Unity Capture, replace `obs` with `unitycapture`. If the selected backend
