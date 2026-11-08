@@ -75,7 +75,7 @@ private fun ApoloApp() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 when (screen) {
-                    Screen.HOME -> HomeScreen(telemetry, scenario) { scenario = it }
+                    Screen.HOME -> HomeScreen(telemetry, scenario, onScenario = { scenario = it }, onStartConnection = { screen = Screen.CONNECTION })
                     Screen.BATTERY -> BatteryScreen(telemetry)
                     Screen.BMS -> BmsScreen(scenario, telemetry)
                     Screen.CONNECTION -> ConnectionScreen()
@@ -87,12 +87,15 @@ private fun ApoloApp() {
 }
 
 @Composable
-private fun HomeScreen(t: DemoTelemetry, scenario: DemoScenario, onScenario: (DemoScenario) -> Unit) {
+private fun HomeScreen(t: DemoTelemetry, scenario: DemoScenario, onScenario: (DemoScenario) -> Unit, onStartConnection: () -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Módulo APOLO", style = MaterialTheme.typography.titleLarge)
             Text("Nenhum hardware conectado", color = MaterialTheme.colorScheme.secondary)
             Text("A saída de potência está bloqueada nesta versão.")
+            Button(onClick = onStartConnection, modifier = Modifier.fillMaxWidth()) {
+                Text("Iniciar preparação e conexão do notebook")
+            }
             LinearProgressIndicator(progress = { t.stateOfCharge / 100f }, modifier = Modifier.fillMaxWidth())
             Text("Carga simulada: ${t.stateOfCharge}%")
         }
