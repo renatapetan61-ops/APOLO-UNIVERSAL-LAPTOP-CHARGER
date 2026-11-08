@@ -3,6 +3,8 @@ package com.apolo.charger
 import android.Manifest
 import android.content.pm.PackageManager
 import android.util.Size
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
@@ -50,13 +52,14 @@ fun AmisMobileCameraPanel() {
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     val captureExecutor = remember { Executors.newSingleThreadExecutor() }
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         permissionGranted = granted
         status = if (granted) "Permissão concedida. Preparando câmera." else "Permissão da câmera negada."
     }
 
     DisposableEffect(Unit) {
-        onDispose { captureExecutor.shutdown() }
+        onDispose { captureExecutor.shutdownNow() }
     }
 
     LaunchedEffect(previewView, permissionGranted, lensFacing, lifecycleOwner) {
@@ -152,7 +155,7 @@ fun AmisMobileCameraPanel() {
                     val options = ImageCapture.OutputFileOptions.Builder(photo).build()
                     capture.takePicture(options, captureExecutor, object : ImageCapture.OnImageSavedCallback {
                         override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                            status = "Foto capturada. Enviando ao agente local para OCR..."
+                            mainHandler.post { status = "Foto capturada. Enviando ao agente local para OCR..." }
                             Thread {
                                 val result = runCatching {
                                     val bytes = photo.readBytes()
@@ -195,9 +198,11 @@ fun AmisMobileCameraPanel() {
                             }.start()
                         }
                         override fun onError(exception: ImageCaptureException) {
-                            status = "Falha na captura: ${exception.message}"
-                            busy = false
                             photo.delete()
+                            mainHandler.post {
+                                status = "Falha na captura: ${exception.message ?: "erro desconhecido"}"
+                                busy = false
+                            }
                         }
                     })
                 }) { Text(if (busy) "Processando..." else "Fotografar e analisar placa") }
