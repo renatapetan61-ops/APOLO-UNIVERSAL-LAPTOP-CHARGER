@@ -2,6 +2,19 @@
 $ErrorActionPreference = "Stop"
 $RepoZip = "https://github.com/renatapetan61-ops/APOLO-UNIVERSAL-LAPTOP-CHARGER/archive/refs/heads/main.zip"
 $InstallRoot = Join-Path $env:LOCALAPPDATA "APOLO\AMIS"
+$PlatformTools = Join-Path $env:LOCALAPPDATA "APOLO\platform-tools"
+$Adb = Get-Command adb -ErrorAction SilentlyContinue
+if (-not $Adb) {
+    $PlatformToolsZip = Join-Path $env:TEMP "apolo-platform-tools.zip"
+    New-Item -ItemType Directory -Force -Path $PlatformTools | Out-Null
+    Write-Host "Baixando Android Platform Tools oficial para configurar a ponte USB..."
+    Invoke-WebRequest -Uri "https://dl.google.com/android/repository/platform-tools-latest-windows.zip" -OutFile $PlatformToolsZip -UseBasicParsing
+    Expand-Archive -LiteralPath $PlatformToolsZip -DestinationPath $PlatformTools -Force
+    Remove-Item -LiteralPath $PlatformToolsZip -Force -ErrorAction SilentlyContinue
+    $AdbDir = Join-Path $PlatformTools "platform-tools"
+    $env:Path = $AdbDir + ";" + $env:Path
+    [Environment]::SetEnvironmentVariable("Path", $env:Path, "User")
+}
 $ZipPath = Join-Path $env:TEMP "apolo-amis-main.zip"
 $ExtractRoot = Join-Path $env:TEMP ("apolo-amis-" + [guid]::NewGuid().ToString("N"))
 Write-Host "APOLO AMIS — instalador do agente do notebook"
