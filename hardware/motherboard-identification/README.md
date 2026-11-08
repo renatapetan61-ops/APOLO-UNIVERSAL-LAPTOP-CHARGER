@@ -74,7 +74,11 @@ Do not upload motherboard images or identifiers to a cloud service by default. L
 
 - OS/firmware inventory: existing read-only host agent implementation.
 - Optical sensor hardware: not designed to a purchasable BOM; no board fabricated.
-- Camera transport and authenticated capture protocol: not implemented.
+- USB/UVC camera discovery: implemented in `host-agent/amis_camera.py` for Linux, Windows, and macOS enumeration (capture currently supported through OpenCV on Linux-style camera indices).
+- Explicit local camera capture endpoint: `POST /v1/camera/capture`; discovery endpoint: `GET /v1/camera`.
+- Android connection screen: buttons to discover a camera and request a capture through the owner-authorized ADB reverse tunnel.
+- Macro optics and illumination control: not verified by USB enumeration; requires a physically suitable camera/module and supported light controller.
+- End-to-end cryptographic camera authentication: not yet implemented. The current agent binds to loopback and relies on the owner-authorized ADB bridge as a transport boundary; do not treat this as device-level authentication.
 - Local Tesseract OCR proof-of-concept: implemented in `host-agent/board_ocr.py`; requires Tesseract installed on the host.
 - Versioned catalogue schema: added as `host-agent/board_catalogue.json`, intentionally empty until authoritative S2065 board evidence is obtained.
 - HTTP image-ingestion endpoint: `POST /v1/board-inspection` on the loopback-only host agent; accepts JPEG/PNG/WebP up to 8 MiB, processes locally, and does not retain the image.
@@ -89,5 +93,7 @@ Do not upload motherboard images or identifiers to a cloud service by default. L
 2. Validate OCR with real, permissioned sample images covering blur, glare, low light, and angled silkscreen.
 3. Select camera/optics only after measuring working distance and confirming a safe line of sight on the exact chassis.
 4. Build and bench-test a standalone optical module before any laptop installation.
-5. Add authenticated sensor transport and a signed capture envelope; the current HTTP endpoint is loopback-only development plumbing, not device authentication.
-6. Integrate reviewed identification results into the Android app.
+5. Add a per-device pairing secret, nonce-based challenge-response, signed capture envelope, and replay protection before calling the camera channel authenticated.
+6. Validate UVC capture and optical focus on the actual chassis; camera enumeration alone does not prove macro capability or line of sight.
+7. Design and bench-test a safe illumination controller compatible with the selected camera module.
+8. Integrate reviewed identification results into the Android app; current screen exposes discovery and capture request/status.
