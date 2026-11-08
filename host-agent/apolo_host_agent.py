@@ -145,6 +145,7 @@ def snapshot() -> dict:
         result["inventory"] = mac_inventory()
     else:
         result["inventory"] = {"note": "Unsupported OS; basic platform data only"}
+    result["motherboard_electronic_evidence"] = board_identity_evidence(result["inventory"])
     return result
 
 
