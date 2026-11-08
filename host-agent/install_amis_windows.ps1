@@ -1,5 +1,11 @@
 #requires -Version 5.1
 $ErrorActionPreference = "Stop"
+Write-Host "APOLO AMIS — instalador do agente do notebook"
+Write-Host "Este processo instala módulos locais de inventário e inspeção."
+Write-Host "Não instala drivers de câmera, não altera firmware e NÃO habilita saída elétrica."
+Write-Host "Será necessário confirmar a instalação nesta janela do Windows."
+$confirm = Read-Host "Digite INSTALAR para continuar"
+if ($confirm -cne "INSTALAR") { Write-Host "Instalação cancelada."; exit 0 }
 $RepoZip = "https://github.com/renatapetan61-ops/APOLO-UNIVERSAL-LAPTOP-CHARGER/archive/refs/heads/main.zip"
 $InstallRoot = Join-Path $env:LOCALAPPDATA "APOLO\AMIS"
 $PlatformTools = Join-Path $env:LOCALAPPDATA "APOLO\platform-tools"
@@ -17,12 +23,6 @@ if (-not $Adb) {
 }
 $ZipPath = Join-Path $env:TEMP "apolo-amis-main.zip"
 $ExtractRoot = Join-Path $env:TEMP ("apolo-amis-" + [guid]::NewGuid().ToString("N"))
-Write-Host "APOLO AMIS — instalador do agente do notebook"
-Write-Host "Este processo instala módulos locais de inventário e inspeção."
-Write-Host "Não instala drivers de câmera, não altera firmware e NÃO habilita saída elétrica."
-Write-Host "Será necessário confirmar a instalação nesta janela do Windows."
-$confirm = Read-Host "Digite INSTALAR para continuar"
-if ($confirm -cne "INSTALAR") { Write-Host "Instalação cancelada."; exit 0 }
 $Python = Get-Command py -ErrorAction SilentlyContinue
 if (-not $Python) { throw "Python 3.11+ com o Python Launcher (py) é necessário. Instale-o e execute novamente." }
 New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
