@@ -105,7 +105,8 @@ fun ConnectionScreen() {
         Button(onClick = { refresh() }, modifier = Modifier.fillMaxWidth()) {
             Text("Verificar conexão USB agora")
         }
-        AmisWindowsInstallerTransferPanel()        Button(onClick = { callHostAgent("/v1/amis/status") }, enabled = !cameraBusy, modifier = Modifier.fillMaxWidth()) {
+        AmisWindowsInstallerTransferPanel()
+        Button(onClick = { callHostAgent("/v1/amis/status") }, enabled = !cameraBusy, modifier = Modifier.fillMaxWidth()) {
             Text(if (cameraBusy) "Verificando agente..." else "Conectar e verificar agente AMIS no notebook")
         }
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
