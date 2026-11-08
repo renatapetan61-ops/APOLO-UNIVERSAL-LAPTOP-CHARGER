@@ -28,6 +28,7 @@ def main() -> int:
     parser.add_argument("--backend", choices=("obs", "unitycapture"), default=None)
     parser.add_argument("--amis-url", default=None, help="Optional AMIS frame endpoint, e.g. http://127.0.0.1:8765/v1/virtual-camera/frames")
     parser.add_argument("--inspect-interval", type=float, default=2.0, help="Seconds between OCR submissions when --amis-url is set")
+    parser.add_argument("--hardware-map-url", default=None, help="AMIS logical hardware map JSON endpoint")
     args = parser.parse_args()
 
     if args.width < 320 or args.height < 240 or not (1 <= args.fps <= 60):
@@ -43,9 +44,17 @@ def main() -> int:
     capture.set(cv2.CAP_PROP_FPS, args.fps)
 
     last_inspection = 0.0
+    hardware_map = {"nodes": [], "node_count": 0}
+    if args.hardware_map_url:
+        try:
+            with urllib.request.urlopen(args.hardware_map_url, timeout=8) as response:
+                hardware_map = json.loads(response.read().decode("utf-8"))
+        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+            print(f"AMIS hardware map unavailable: {exc}", file=sys.stderr)
+    output_width = args.width + (360 if args.hardware_map_url else 0)
     try:
         with pyvirtualcam.Camera(
-            width=args.width,
+            width=output_width,
             height=args.height,
             fps=args.fps,
             fmt=pyvirtualcam.PixelFormat.RGB,
@@ -62,6 +71,19 @@ def main() -> int:
                     continue
                 if bgr.shape[1] != args.width or bgr.shape[0] != args.height:
                     bgr = cv2.resize(bgr, (args.width, args.height), interpolation=cv2.INTER_AREA)
+                if args.hardware_map_url:
+                    panel = np.zeros((args.height, 360, 3), dtype=np.uint8)
+                    panel[:] = (24, 36, 48)
+                    cv2.putText(panel, "AMIS HARDWARE MAP", (18, 34), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (230, 245, 255), 2)
+                    cv2.putText(panel, "Components: " + str(hardware_map.get("node_count", 0)), (18, 68), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (160, 220, 210), 1)
+                    y = 108
+                    for node in hardware_map.get("nodes", [])[:16]:
+                        category = str(node.get("category", "part")).upper()
+                        label = str(node.get("label", "Unknown"))
+                        cv2.putText(panel, (category + ": " + label)[:42], (18, y), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (235, 240, 245), 1)
+                        y += 34
+                    cv2.putText(panel, "LOGICAL INVENTORY — NOT X-RAY", (18, args.height - 24), cv2.FONT_HERSHEY_SIMPLEX, 0.36, (120, 190, 255), 1)
+                    bgr = np.concatenate((bgr, panel), axis=1)
                 rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
                 virtual_camera.send(np.ascontiguousarray(rgb))
                 if args.amis_url and time.monotonic() - last_inspection >= max(0.5, args.inspect_interval):
