@@ -191,6 +191,45 @@ def snapshot() -> dict:
     return result
 
 
+def amis_status() -> dict:
+    """Describe the complete camera-to-vision pipeline without claiming a camera is connected."""
+    return {
+        "protocol": "amis-integrated-pipeline/1",
+        "status": "READY_FOR_IMAGE_SOURCE",
+        "components": {
+            "virtual_camera_core": VIRTUAL_CAMERA.status(),
+            "motherboard_vision_engine": {
+                "protocol": VISION_ENGINE.PROTOCOL,
+                "local_ocr": True,
+                "catalogue_cross_check": True,
+                "requires_real_image_frame": True,
+            },
+        },
+        "image_sources": {
+            "android_camera_x": {
+                "transport": "HTTP POST /v1/virtual-camera/frames",
+                "connection": "owner-authorized ADB reverse bridge or same-host loopback",
+                "status": "AVAILABLE_AS_CLIENT; physical connection not asserted",
+            },
+            "usb_uvc_camera": {
+                "transport": "host-local OpenCV capture via /v1/camera/capture",
+                "status": "OPTIONAL; hardware presence must be checked separately",
+            },
+        },
+        "inspection_requirements": {
+            "real_camera_required": True,
+            "direct_line_of_sight_to_motherboard_required": True,
+            "opaque_chassis_transparency": False,
+            "catalogue_identity_confirmation_required": True,
+        },
+        "charging": {
+            "authorization": "DENIED",
+            "dc_jack_voltage": None,
+            "dc_jack_polarity": "UNMEASURED",
+        },
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/v1/camera/capture":
@@ -249,7 +288,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(500)
 
     def do_GET(self):
-        if self.path == "/v1/virtual-camera/status":
+        if self.path == "/v1/amis/status":
+            payload = amis_status()
+        elif self.path == "/v1/virtual-camera/status":
             payload = VIRTUAL_CAMERA.status()
         elif self.path == "/v1/camera":
             payload = discover_cameras()
