@@ -77,3 +77,27 @@ def capture_and_inspect(electronic_evidence: dict, catalogue_path: Path,
                 "inspection": result}
     finally:
         cap.release()
+
+
+def capture_frame(device_index: int = 0) -> tuple[bytes | None, dict]:
+    """Capture one JPEG frame from a local UVC camera without running OCR here."""
+    try:
+        import cv2
+    except ImportError:
+        return None, {"status": "CAPTURE_UNAVAILABLE", "reason": "OpenCV is not installed on the host"}
+    cap = cv2.VideoCapture(device_index, cv2.CAP_ANY)
+    try:
+        if not cap.isOpened():
+            return None, {"status": "CAMERA_OPEN_FAILED", "reason": "Camera could not be opened"}
+        ok, frame = cap.read()
+        if not ok or frame is None:
+            return None, {"status": "CAPTURE_FAILED", "reason": "Camera returned no frame"}
+        height, width = frame.shape[:2]
+        if width < 320 or height < 240:
+            return None, {"status": "IMAGE_TOO_SMALL", "width": width, "height": height}
+        ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
+        if not ok:
+            return None, {"status": "ENCODE_FAILED"}
+        return encoded.tobytes(), {"status": "CAPTURED", "camera_index": device_index, "image_dimensions": {"width": width, "height": height}, "capture_transport": "local UVC/OpenCV", "macro_capability_verified": False, "illumination_control": "NOT_AVAILABLE_UNLESS_HARDWARE_SUPPORTS_IT"}
+    finally:
+        cap.release()
