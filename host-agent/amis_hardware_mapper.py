@@ -41,7 +41,7 @@ def map_components(system: str, inventory: dict) -> dict:
             _add(nodes, "gpu", g.get("name"), g.get("driver"))
         _add(nodes, "memory", memory.get("total_gb"), "Installed physical memory (GiB)")
         for d in disks:
-            _add(nodes, "storage", d.get("model") or d.get("name"), d.get("size"))
+            _add(nodes, "storage", d.get("model") or d.get("name"), d.get("size_gb"))
         for b in batteries:
             _add(nodes, "battery", b.get("name"), b.get("status"))
         for d in controllers:
@@ -85,7 +85,7 @@ def map_components(system: str, inventory: dict) -> dict:
 
 def render_svg(mapping: dict) -> bytes:
     nodes = mapping.get("nodes", [])
-    width, row_h, top = 960, 88, 120
+    width, row_h, top = 960, 88, 180
     height = max(300, top + max(1, len(nodes)) * row_h + 80)
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
