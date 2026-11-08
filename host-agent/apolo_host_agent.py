@@ -19,6 +19,7 @@ from pathlib import Path
 from amis_camera import discover_cameras, capture_frame
 from amis_virtual_camera import AMISVirtualCameraCore
 from amis_vision_engine import AMISMotherboardVisionEngine
+from amis_hardware_mapper import map_components, render_svg
 
 HOST, PORT = "127.0.0.1", 8765
 PROTOCOL = "apolo-host-agent/3"
@@ -188,6 +189,7 @@ def snapshot() -> dict:
     else:
         result["inventory"] = {"note": "Unsupported OS; basic platform data only"}
     result["motherboard_electronic_evidence"] = board_identity_evidence(result["inventory"])
+    result["hardware_map"] = map_components(system, result["inventory"])
     return result
 
 
@@ -197,6 +199,7 @@ def amis_status() -> dict:
         "protocol": "amis-integrated-pipeline/1",
         "status": "READY_FOR_IMAGE_SOURCE",
         "components": {
+            "hardware_mapper": {"protocol": "amis-hardware-map/1", "status": "READ_ONLY_INVENTORY_AND_SVG_READY"},
             "virtual_camera_core": VIRTUAL_CAMERA.status(),
             "motherboard_vision_engine": {
                 "protocol": VISION_ENGINE.PROTOCOL,
@@ -204,6 +207,11 @@ def amis_status() -> dict:
                 "catalogue_cross_check": True,
                 "requires_real_image_frame": True,
             },
+        },
+        "hardware_mapping": {
+            "json_endpoint": "GET /v1/hardware/map",
+            "svg_endpoint": "GET /v1/hardware/map.svg",
+            "physical_coordinates": "UNKNOWN_UNLESS_VERIFIED",
         },
         "image_sources": {
             "android_camera": {
@@ -258,6 +266,7 @@ class Handler(BaseHTTPRequestHandler):
                 frame = VIRTUAL_CAMERA.ingest(image_data, source_id="uvc-camera-0")
                 result = VISION_ENGINE.inspect(frame, snapshot().get("motherboard_electronic_evidence", {}), Path(__file__).with_name("board_catalogue.json"))
                 result["physical_source"] = source_info
+                result["hardware_map_summary"] = snapshot().get("hardware_map", {})
                 body = json.dumps(result, separators=(",", ":"), default=str).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -286,6 +295,7 @@ class Handler(BaseHTTPRequestHandler):
             result = VISION_ENGINE.inspect(
                 frame, evidence, Path(__file__).with_name("board_catalogue.json")
             )
+            result["hardware_map_summary"] = snapshot().get("hardware_map", {})
             body = json.dumps(result, separators=(",", ":"), default=str).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -307,6 +317,17 @@ class Handler(BaseHTTPRequestHandler):
             payload = discover_cameras()
         elif self.path == "/v1/inventory":
             payload = snapshot()
+        elif self.path == "/v1/hardware/map":
+            payload = snapshot().get("hardware_map", {})
+        elif self.path == "/v1/hardware/map.svg":
+            svg = render_svg(snapshot().get("hardware_map", {}))
+            self.send_response(200)
+            self.send_header("Content-Type", "image/svg+xml; charset=utf-8")
+            self.send_header("Content-Length", str(len(svg)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(svg)
+            return
         else:
             self.send_error(404)
             return
