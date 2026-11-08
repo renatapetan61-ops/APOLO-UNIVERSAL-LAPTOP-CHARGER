@@ -69,7 +69,6 @@ def inspect_image(image: bytes, electronic_evidence: dict,
                 "reason": "Tesseract could not process the image"}
 
     lines: dict[tuple[str, str, str], list[str]] = {}
-    confidences: list[float] = []
     for row in proc.stdout.splitlines()[1:]:
         cols = row.split("\t")
         if len(cols) < 12 or not cols[11].strip():
@@ -81,17 +80,16 @@ def inspect_image(image: bytes, electronic_evidence: dict,
         if conf < 0:
             continue
         key = (cols[1], cols[2], cols[4])
-        lines.setdefault(key, []).append(cols[11].strip())
-        confidences.append(conf)
+        lines.setdefault(key, []).append((cols[11].strip(), conf))
     candidates = []
     for (page, block, line), words in lines.items():
-        raw = " ".join(words)
+        raw = " ".join(word for word, _ in words)
         normalized = _normalize(raw)
         if normalized:
             candidates.append({
                 "raw_text": raw, "normalized_text": normalized,
                 "mean_ocr_confidence": round(
-                    sum(confidences) / max(1, len(confidences)), 2),
+                    sum(conf for _, conf in words) / max(1, len(words)), 2),
                 "page": int(page), "block": int(block), "line": int(line),
             })
 
@@ -113,13 +111,12 @@ def inspect_image(image: bytes, electronic_evidence: dict,
                                     "revision": board.get("revision")})
 
     raw_fields = electronic_evidence.get("raw_fields", {})
-    electronic_tokens = {
-        _normalize(str(v)) for v in raw_fields.values()
-        if isinstance(v, (str, int)) and str(v).strip()
-    }
-    optical_tokens = {c["normalized_text"] for c in candidates}
-    corroborated = bool(matches) and any(
-        _normalize(str(m.get("manufacturer") or "")) in electronic_tokens
+    # Corroboration must come from the baseboard manufacturer field only;
+    # system vendor or BIOS vendor matches are not independent board evidence.
+    electronic_board_manufacturer = raw_fields.get("manufacturer")
+    electronic_board_token = _normalize(str(electronic_board_manufacturer or ""))
+    corroborated = bool(matches) and bool(electronic_board_token) and any(
+        _normalize(str(m.get("manufacturer") or "")) == electronic_board_token
         for m in matches
     )
     if len(matches) > 1:
