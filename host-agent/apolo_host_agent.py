@@ -16,11 +16,14 @@ import socket
 import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from board_ocr import inspect_image
 from amis_camera import discover_cameras, capture_and_inspect
+from amis_virtual_camera import AMISVirtualCameraCore
+from amis_vision_engine import AMISMotherboardVisionEngine
 
 HOST, PORT = "127.0.0.1", 8765
-PROTOCOL = "apolo-host-agent/2"
+PROTOCOL = "apolo-host-agent/3"
+VIRTUAL_CAMERA = AMISVirtualCameraCore()
+VISION_ENGINE = AMISMotherboardVisionEngine()
 
 
 def read_text(path: str) -> str | None:
@@ -206,7 +209,7 @@ class Handler(BaseHTTPRequestHandler):
             except (ValueError, OSError):
                 self.send_error(400)
             return
-        if self.path != "/v1/board-inspection":
+        if self.path not in ("/v1/board-inspection", "/v1/virtual-camera/frames"):
             self.send_error(404)
             return
         try:
@@ -218,9 +221,11 @@ class Handler(BaseHTTPRequestHandler):
             if len(image_data) != length:
                 self.send_error(400)
                 return
+            source_id = self.headers.get("X-AMIS-Source", "android-camerax")
+            frame = VIRTUAL_CAMERA.ingest(image_data, source_id=source_id)
             evidence = snapshot().get("motherboard_electronic_evidence", {})
-            result = inspect_image(
-                image_data, evidence, Path(__file__).with_name("board_catalogue.json")
+            result = VISION_ENGINE.inspect(
+                frame, evidence, Path(__file__).with_name("board_catalogue.json")
             )
             body = json.dumps(result, separators=(",", ":"), default=str).encode()
             self.send_response(200)
@@ -229,11 +234,15 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
-        except (ValueError, OSError):
-            self.send_error(400)
+        except ValueError as exc:
+            self.send_error(400, str(exc))
+        except OSError:
+            self.send_error(500)
 
     def do_GET(self):
-        if self.path == "/v1/camera":
+        if self.path == "/v1/virtual-camera/status":
+            payload = VIRTUAL_CAMERA.status()
+        elif self.path == "/v1/camera":
             payload = discover_cameras()
         elif self.path == "/v1/inventory":
             payload = snapshot()
