@@ -47,6 +47,7 @@ jobs:
           /tmp/apolo-cpp-sensor > /tmp/apolo-sensor-output/cpp.json
           dotnet new console --output /tmp/apolo-csharp --framework net8.0 --no-restore
           cp bms-virtual-sensors/csharp/Program.cs /tmp/apolo-csharp/Program.cs
+          dotnet restore /tmp/apolo-csharp
           dotnet run --project /tmp/apolo-csharp --no-restore > /tmp/apolo-sensor-output/csharp.json
           python - <<'PY'
           import json
