@@ -130,7 +130,7 @@ fun AmisMobileCameraPanel() {
                             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
                             val body = stream?.bufferedReader()?.use { it.readText() } ?: "Resposta vazia"
                             connection.disconnect()
-                            "AMIS HTTP $code\\n$body"
+                            "AMIS HTTP $code\n$body"
                         }.getOrElse {
                             "AMIS não conectado: ${it.message}. Inicie o APOLO Host Agent no notebook e configure a ponte ADB autorizada."
                         }
@@ -180,7 +180,7 @@ fun AmisMobileCameraPanel() {
                                         val candidates = json.optJSONArray("ocr_candidates")?.length() ?: 0
                                         val matches = json.optJSONArray("catalogue_matches")?.length() ?: 0
                                         val source = json.optJSONObject("capture")?.optString("source_id", "unknown") ?: "unknown"
-                                        "AMIS: $resultCode\\nFonte: $source\\nQualidade: $quality\\nTextos OCR: $candidates\\nCorrespondências no catálogo: $matches\\nPlaca confirmada: $boardLabel\\n\\nA identificação visual não mede tensão ou polaridade e não libera a carga."
+                                        "AMIS: $resultCode\nFonte: $source\nQualidade: $quality\nTextos OCR: $candidates\nCorrespondências no catálogo: $matches\nPlaca confirmada: $boardLabel\n\nA identificação visual não mede tensão ou polaridade e não libera a carga."
                                     } else {
                                         "Falha no AMIS (HTTP $code): $body"
                                     }
