@@ -67,6 +67,39 @@ such as Camera or OBS. The virtual webcam is a video relay for conferencing and
 inspection preview; the AMIS OCR pipeline still receives the original camera
 frames through the host agent.
 
+
+## Install the integrated host modules on Windows
+
+From PowerShell, after downloading/cloning the repository, run:
+
+```powershell
+cd .\host-agent
+Set-ExecutionPolicy -Scope Process Bypass
+.\install_amis_windows.ps1
+```
+
+The per-user installer creates a Python virtual environment, installs the
+vision dependencies, compile-checks the AMIS modules and adds a shortcut to
+the current user's Startup folder. The local-only host agent starts at the
+next sign-in. It does not install kernel drivers, alter firmware, or require
+administrator privileges. Install OBS Studio separately if a Windows virtual
+webcam output is required; the actual UVC camera must also be connected.
+
+Start the agent immediately after installation with:
+
+```powershell
+.\.venv-amis\Scripts\python.exe .\apolo_host_agent.py
+```
+
+Then open the map endpoints on the same notebook:
+- `http://127.0.0.1:8765/v1/hardware/map`
+- `http://127.0.0.1:8765/v1/hardware/map.svg`
+
+To display the map beside the real camera feed in the virtual webcam, start
+`amis_virtual_webcam.py` with both `--hardware-map-url` and `--amis-url`
+as shown above. Only the original camera frame is submitted for OCR; the map
+panel is excluded from OCR input.
+
 ## Android phone camera
 
 1. Run `python apolo_host_agent.py` on the notebook.
