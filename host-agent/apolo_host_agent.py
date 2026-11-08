@@ -374,8 +374,23 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
+def enable_authorized_adb_reverse() -> str:
+    """Expose this loopback-only agent to Android only when ADB is already authorized."""
+    try:
+        result = subprocess.run(["adb", "reverse", f"tcp:{PORT}", f"tcp:{PORT}"],
+                                capture_output=True, text=True, timeout=8, check=False)
+        if result.returncode == 0:
+            return "ADB reverse ativo; Android pode acessar 127.0.0.1:8765."
+        detail = (result.stderr or result.stdout or "dispositivo não autorizado").strip()
+        return f"ADB reverse indisponível: {detail[:240]}"
+    except FileNotFoundError:
+        return "ADB não encontrado. Instale Android Platform Tools e autorize a depuração USB no telefone."
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return f"Não foi possível configurar ADB reverse: {exc}"
+
+
 if __name__ == "__main__":
     print(f"APOLO read-only inventory agent: http://{HOST}:{PORT}/v1/inventory")
-    print("For owner-authorized USB/ADB bridge: adb reverse tcp:8765 tcp:8765")
+    print(enable_authorized_adb_reverse())
     print("DC jack voltage/polarity: UNMEASURED; charging authorization: DENIED")
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
