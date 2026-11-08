@@ -19,6 +19,46 @@ A separate local processing component. It invokes Tesseract TSV in two recogniti
 
 The host agent binds only to 127.0.0.1. The image is not written to disk or uploaded to a cloud service by these components. The OCR implementation may create a temporary local file for Tesseract and removes it when processing finishes.
 
+## Local host setup
+
+Run these commands from the repository's `host-agent/` directory.
+
+### Ubuntu / Debian
+
+```bash
+sudo apt update
+sudo apt install -y tesseract-ocr
+python3 -m pip install -r requirements-vision.txt
+python3 apolo_host_agent.py
+```
+
+### macOS
+
+```bash
+brew install tesseract
+python3 -m pip install -r requirements-vision.txt
+python3 apolo_host_agent.py
+```
+
+### Windows
+
+Install Tesseract OCR (for example, the UB Mannheim Windows build), ensure `tesseract.exe` is on PATH, then run:
+
+```powershell
+py -m pip install -r requirements-vision.txt
+py apolo_host_agent.py
+```
+
+### Android phone to notebook
+
+With Android USB debugging enabled and the notebook's ADB authorization explicitly approved by the owner, run on the notebook:
+
+```bash
+adb reverse tcp:8765 tcp:8765
+```
+
+Then open the APOLO app, allow camera permission, frame the visible motherboard text, tap capture, and inspect the returned OCR candidates. The notebook host agent must remain running. Disconnect the bridge and disable USB debugging when finished if it is not otherwise needed.
+
 ## Optical limitations
 
 The phone camera can photograph the motherboard only with direct line of sight. If the laptop is closed or the board is hidden by an opaque chassis, keyboard, shield, or other component, the virtual camera cannot see through it. A qualified technician may need to safely expose the board and position the phone. Digital zoom is not optical macro focus; lighting, focus distance, resolution, glare, and stability determine whether tiny silkscreen can be read.
