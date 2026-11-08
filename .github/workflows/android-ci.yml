@@ -58,9 +58,16 @@ jobs:
           APOLO_RELEASE_KEY_PASSWORD: ${{ secrets.APOLO_RELEASE_KEY_PASSWORD }}
           APOLO_RELEASE_STORE_FILE: ${{ runner.temp }}/apolo-release.jks
         run: |
-          test -n "$APOLO_RELEASE_KEYSTORE_BASE64"
+          set -euo pipefail
+          test -n "$APOLO_RELEASE_KEYSTORE_BASE64" || { echo "Missing APOLO_RELEASE_KEYSTORE_BASE64"; exit 1; }
+          test -n "$APOLO_RELEASE_STORE_PASSWORD" || { echo "Missing APOLO_RELEASE_STORE_PASSWORD"; exit 1; }
+          test -n "$APOLO_RELEASE_KEY_ALIAS" || { echo "Missing APOLO_RELEASE_KEY_ALIAS"; exit 1; }
+          test -n "$APOLO_RELEASE_KEY_PASSWORD" || { echo "Missing APOLO_RELEASE_KEY_PASSWORD"; exit 1; }
           echo "$APOLO_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$APOLO_RELEASE_STORE_FILE"
+          chmod 600 "$APOLO_RELEASE_STORE_FILE"
           gradle :android:app:assembleRelease
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
+          sha256sum android/app/build/outputs/apk/release/app-release.apk
           rm -f "$APOLO_RELEASE_STORE_FILE"
       - name: Upload signed release APK
         if: ${{ vars.APOLO_RELEASE_ENABLED == 'true' }}
