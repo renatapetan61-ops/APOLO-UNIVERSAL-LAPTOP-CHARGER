@@ -1,7 +1,6 @@
 package com.apolo.charger
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -33,12 +32,8 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
-import kotlin.math.roundToInt
 
-/**
- * AMIS Mobile Camera: uses the phone's own camera to photograph a physically
- * visible motherboard. Images are sent only to the owner's local host agent.
- */
+/** Uses the phone camera to photograph a motherboard that is physically visible. */
 @Composable
 fun AmisMobileCameraPanel() {
     val context = LocalContext.current
@@ -47,24 +42,59 @@ fun AmisMobileCameraPanel() {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
     var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
-    var status by remember { mutableStateOf("Configure a câmera e posicione o celular diante da placa-mãe.") }
+    var status by remember { mutableStateOf("Permita o acesso à câmera para iniciar a inspeção.") }
     var busy by remember { mutableStateOf(false) }
     var zoom by remember { mutableFloatStateOf(1f) }
     var camera by remember { mutableStateOf<Camera?>(null) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
-    val executor = remember { Executors.newSingleThreadExecutor() }
+    var previewView by remember { mutableStateOf<PreviewView?>(null) }
+    val captureExecutor = remember { Executors.newSingleThreadExecutor() }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         permissionGranted = granted
-        status = if (granted) "Permissão concedida. Inicializando câmera." else "Permissão da câmera negada."
+        status = if (granted) "Permissão concedida. Preparando câmera." else "Permissão da câmera negada."
     }
 
     DisposableEffect(Unit) {
-        onDispose { executor.shutdown() }
+        onDispose { captureExecutor.shutdown() }
+    }
+
+    LaunchedEffect(previewView, permissionGranted, lensFacing, lifecycleOwner) {
+        val view = previewView
+        if (view != null && permissionGranted) {
+            val providerFuture = ProcessCameraProvider.getInstance(context)
+            providerFuture.addListener({
+                runCatching {
+                    val provider = providerFuture.get()
+                    val preview = Preview.Builder().build().also { it.setSurfaceProvider(view.surfaceProvider) }
+                    val capture = ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                        .setTargetResolution(Size(1920, 1080))
+                        .build()
+                    val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
+                    provider.unbindAll()
+                    camera = provider.bindToLifecycle(lifecycleOwner, selector, preview, capture)
+                    imageCapture = capture
+                    camera?.cameraControl?.setLinearZoom(((zoom - 1f) / 7f).coerceIn(0f, 1f))
+                    status = "Câmera pronta. Enquadre a inscrição da placa-mãe."
+                }.onFailure {
+                    status = "Não foi possível iniciar essa câmera: ${it.message}"
+                    imageCapture = null
+                }
+            }, ContextCompat.getMainExecutor(context))
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        onDispose {
+            runCatching { ProcessCameraProvider.getInstance(context).get().unbindAll() }
+            camera = null
+            imageCapture = null
+        }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("AMIS Mobile Camera", style = MaterialTheme.typography.titleMedium)
-        Text("Use a câmera do próprio celular para fotografar inscrições que estejam fisicamente visíveis na placa. A câmera do telefone não enxerga através da carcaça.")
+        Text("Configure e use a câmera do próprio celular. Para fotografar a placa, ela precisa estar fisicamente visível; a câmera não enxerga através da carcaça.")
         if (!permissionGranted) {
             Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
                 Text("Permitir acesso à câmera")
@@ -76,29 +106,11 @@ fun AmisMobileCameraPanel() {
                     PreviewView(ctx).apply {
                         scaleType = PreviewView.ScaleType.FILL_CENTER
                         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                        previewView = this
                     }
-                },
-                update = { previewView ->
-                    val providerFuture = ProcessCameraProvider.getInstance(context)
-                    providerFuture.addListener({
-                        runCatching {
-                            val provider = providerFuture.get()
-                            val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
-                            val capture = ImageCapture.Builder()
-                                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                                .setTargetResolution(Size(1920, 1080))
-                                .build()
-                            val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
-                            provider.unbindAll()
-                            camera = provider.bindToLifecycle(lifecycleOwner, selector, preview, capture)
-                            imageCapture = capture
-                            camera?.cameraControl?.setLinearZoom((zoom / 8f).coerceIn(0f, 1f))
-                            status = "Câmera pronta. Ajuste o enquadramento e capture a inscrição."
-                        }.onFailure { status = "Não foi possível iniciar essa câmera: ${it.message}" }
-                    }, ContextCompat.getMainExecutor(context))
                 }
             )
-            Text("Zoom: ${"%.1f".format(zoom)}×")
+            Text("Zoom digital: ${"%.1f".format(zoom)}×")
             Slider(value = zoom, onValueChange = {
                 zoom = it
                 camera?.cameraControl?.setLinearZoom(((it - 1f) / 7f).coerceIn(0f, 1f))
@@ -106,7 +118,7 @@ fun AmisMobileCameraPanel() {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(enabled = !busy, onClick = {
                     lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
-                    status = "Alternando câmera. Aguarde a pré-visualização."
+                    status = "Alternando câmera..."
                 }) { Text("Alternar câmera") }
                 Button(enabled = !busy && imageCapture != null, onClick = {
                     val capture = imageCapture ?: return@Button
@@ -114,13 +126,14 @@ fun AmisMobileCameraPanel() {
                     status = "Capturando imagem..."
                     val photo = File(context.cacheDir, "amis-board-capture.jpg")
                     val options = ImageCapture.OutputFileOptions.Builder(photo).build()
-                    capture.takePicture(options, executor, object : ImageCapture.OnImageSavedCallback {
+                    capture.takePicture(options, captureExecutor, object : ImageCapture.OnImageSavedCallback {
                         override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                            status = "Imagem capturada. Enviando ao agente local para OCR..."
+                            status = "Foto capturada. Enviando ao agente local para OCR..."
                             Thread {
                                 val result = runCatching {
                                     val bytes = photo.readBytes()
-                                    val connection = (URL("http://127.0.0.1:8765/v1/board-inspection").openConnection() as HttpURLConnection)
+                                    require(bytes.size <= 8 * 1024 * 1024) { "Imagem maior que o limite de 8 MiB" }
+                                    val connection = URL("http://127.0.0.1:8765/v1/board-inspection").openConnection() as HttpURLConnection
                                     connection.requestMethod = "POST"
                                     connection.connectTimeout = 5000
                                     connection.readTimeout = 60000
@@ -129,12 +142,14 @@ fun AmisMobileCameraPanel() {
                                     connection.setRequestProperty("Cache-Control", "no-store")
                                     connection.setFixedLengthStreamingMode(bytes.size)
                                     connection.outputStream.use { it.write(bytes) }
-                                    val stream = if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream
-                                    val body = stream?.bufferedReader()?.use { it.readText() } ?: "Resposta vazia do agente"
                                     val code = connection.responseCode
+                                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                                    val body = stream?.bufferedReader()?.use { it.readText() } ?: "Resposta vazia do agente"
                                     connection.disconnect()
                                     "HTTP $code\n$body"
-                                }.getOrElse { "Falha ao enviar ao agente: ${it.message}. Verifique o agente e a ponte USB/ADB autorizada." }
+                                }.getOrElse {
+                                    "Falha ao enviar ao agente: ${it.message}. Verifique o agente e a ponte USB/ADB autorizada."
+                                }
                                 photo.delete()
                                 android.os.Handler(android.os.Looper.getMainLooper()).post {
                                     status = result
@@ -152,6 +167,6 @@ fun AmisMobileCameraPanel() {
             }
         }
         Text(status, style = MaterialTheme.typography.bodySmall)
-        Text("Privacidade: a imagem é mantida temporariamente no cache do celular, enviada ao agente local em 127.0.0.1 pela ponte autorizada e apagada após o envio. Não há envio para nuvem pelo aplicativo.")
+        Text("A foto é processada localmente: fica temporariamente no cache, é enviada ao agente em 127.0.0.1 pela ponte autorizada e apagada após o envio. O aplicativo não envia a imagem para a nuvem.")
     }
 }
