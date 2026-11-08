@@ -75,8 +75,31 @@ def linux_inventory() -> dict:
             batteries.append(item)
         elif typ in ("Mains", "USB", "USB_C"):
             adapters.append(item)
+    cpu_model = None
+    cpuinfo = read_text("/proc/cpuinfo") or ""
+    for line in cpuinfo.splitlines():
+        if line.lower().startswith(("model name", "hardware")) and ":" in line:
+            cpu_model = line.split(":", 1)[1].strip()
+            break
+    mem_total = None
+    meminfo = read_text("/proc/meminfo") or ""
+    for line in meminfo.splitlines():
+        if line.startswith("MemTotal:"):
+            mem_total = line.split(":", 1)[1].strip()
+            break
+    pci_text = run_readonly(["lspci"], timeout=5) or ""
+    storage = []
+    try:
+        for dev in Path("/sys/block").iterdir():
+            if dev.name.startswith(("loop", "ram", "zram")):
+                continue
+            storage.append({"name": dev.name, "model": read_text(str(dev / "device/model"))})
+    except OSError:
+        pass
     return {"firmware_hardware": dmi, "batteries": batteries,
-            "power_supplies": adapters}
+            "power_supplies": adapters, "cpu_model": cpu_model,
+            "memory_total": mem_total, "pci_devices": pci_text.splitlines(),
+            "storage_devices": storage}
 
 
 def windows_inventory() -> dict:
@@ -87,13 +110,21 @@ def windows_inventory() -> dict:
     $cpu=Get-CimInstance Win32_Processor | Select-Object -First 1
     $bat=Get-CimInstance Win32_Battery | Select-Object Name,DeviceID,Status,
       BatteryStatus,EstimatedChargeRemaining,DesignVoltage,PNPDeviceID
+    $gpu=Get-CimInstance Win32_VideoController | Select-Object Name,DriverVersion
+    $mem=Get-CimInstance Win32_ComputerSystem
+    $disk=Get-CimInstance Win32_DiskDrive | Select-Object Model,Size,DeviceID
+    $pnp=Get-CimInstance Win32_PnPEntity | Where-Object {$_.PNPClass -in @('System','USB','SCSIAdapter','HDC','Display')} | Select-Object -First 80 Name,PNPDeviceID
     [pscustomobject]@{
       computer=@{manufacturer=$cs.Manufacturer;model=$cs.Model;systemType=$cs.SystemType}
       bios=@{manufacturer=$bios.Manufacturer;version=($bios.SMBIOSBIOSVersion -join ' ');serial=$bios.SerialNumber;releaseDate=$bios.ReleaseDate}
       baseboard=@{manufacturer=$bb.Manufacturer;product=$bb.Product;version=$bb.Version}
       cpu=@{name=$cpu.Name;cores=$cpu.NumberOfCores;logicalProcessors=$cpu.NumberOfLogicalProcessors}
       batteries=@($bat)
-    } | ConvertTo-Json -Depth 5 -Compress
+      gpus=@($gpu)
+      memory=@{total_gb=[math]::Round($mem.TotalPhysicalMemory/1GB,2)}
+      disks=@($disk | ForEach-Object {@{model=$_.Model;size_gb=[math]::Round($_.Size/1GB,2);name=$_.DeviceID}})
+      controllers=@($pnp | ForEach-Object {@{name=$_.Name;device_id=$_.PNPDeviceID}})
+    } | ConvertTo-Json -Depth 6 -Compress
     """
     out = run_readonly(["powershell", "-NoProfile", "-NonInteractive",
                         "-Command", script], timeout=15)
