@@ -1,51 +1,54 @@
-# USB host-agent bridge (experimental, read-only)
+# APOLO host inventory agent and USB bridge
 
-## What this adds
+## What the agent can inspect
 
-`apolo_host_agent.py` is a small standard-library Python companion for a
-Windows, Linux, or macOS laptop. It exposes operating-system identity metadata
-on loopback at `127.0.0.1:8765/v1/identity`. The intended cable workflow is:
+`host-agent/apolo_host_agent.py` is a read-only Python companion for Windows,
+Linux and macOS. It collects information exposed by the host OS and firmware:
+manufacturer/model, motherboard, BIOS, CPU, battery status and selected power
+supply telemetry. Availability varies by OS, driver and permissions.
 
-1. The owner enables Android USB debugging and authorizes their own phone.
-2. The owner starts the host agent on the laptop.
-3. The owner runs `adb reverse tcp:8765 tcp:8765` on the laptop.
-4. An Android-side APOLO client may query `http://127.0.0.1:8765/v1/identity`.
+- Linux: reads DMI and `/sys/class/power_supply`.
+- Windows: queries read-only CIM/WMI classes through PowerShell.
+- macOS: queries `system_profiler` hardware and power reports.
 
-This uses a normal USB data cable as a transport only after the user enables
-and authorizes ADB. A cable alone does not grant an Android app access to the
-laptop's host-side USB controllers or arbitrary hardware registers. The host
-agent must be installed and running; it is not automatically present.
+The JSON endpoint is `http://127.0.0.1:8765/v1/inventory`.
 
-## Critical electrical boundary
+## USB connection
 
-The agent intentionally returns:
+1. Install/run the agent on the laptop.
+2. Enable Android USB debugging only if the owner chooses to use ADB, and
+   authorize the phone on the laptop.
+3. On the laptop, run `adb reverse tcp:8765 tcp:8765`.
+4. The Android APOLO app can then query
+   `http://127.0.0.1:8765/v1/inventory`.
 
-- `dc_jack_voltage_v: null`
-- `dc_jack_polarity: "UNMEASURED"`
-- `dc_measurement_available: false`
-- `charging_authorized: false`
+A plain cable alone does not install or run an agent and does not grant
+arbitrary access to the laptop. ADB is an explicitly enabled, powerful
+developer interface. Disable USB debugging when it is no longer needed.
 
-Laptop operating systems generally do not expose a physical DC barrel-jack
-center-pin-to-sleeve voltage measurement or its polarity. AC-adapter-present
-status, battery state, model strings, USB VID/PID, BIOS data, and vendor
-specifications are not a live electrical measurement of the jack.
+## What it cannot measure
 
-No software-only technique over a common USB cable can safely or universally
-measure those contacts. To obtain a real measurement, the APOLO Power Module
-needs a purpose-designed, electrically isolated, current-limited measurement
-front end connected to the relevant DC contacts, with protection against
-miswiring, transients, and accidental output enable. That hardware must be
-engineered and validated before any power output is enabled.
+The agent always reports DC jack voltage as null, polarity as
+`UNMEASURED`, measurement availability as false, and charging authorization
+as false. AC-adapter-present state, battery telemetry, firmware strings,
+model databases and vendor specifications are not live electrical
+measurements of the DC jack.
 
-## Security
+No OS command or ordinary USB data cable can universally reveal the voltage
+between the physical center contact and sleeve of a barrel jack, or which
+contact is positive. That requires an engineered, isolated and protected
+measurement front-end connected to those contacts, with ADC telemetry and
+independent hardware interlocks. The measurement system must be designed and
+validated before any power output is enabled.
 
-- The server binds only to loopback; do not expose it to a LAN or public network.
-- The endpoint is read-only and must never authorize charging.
-- OS-reported model strings are untrusted claims, not cryptographic proof.
-- A future authenticated protocol needs explicit key provisioning and
-  challenge-response. Never embed a shared secret in the Android APK.
-- ADB debugging grants powerful access. Disable it when finished and do not
-  authorize unknown computers.
+## Security and trust
+
+- The service binds only to loopback and is read-only.
+- OS inventory is useful evidence but is not cryptographic proof of device identity.
+- Battery/adapter information may be absent or inaccurate due to firmware/drivers.
+- Do not expose this endpoint to a LAN or public network.
+- Do not embed shared secrets in the Android APK.
+- Inventory data never authorizes charging.
 
 ## Run
 
@@ -53,12 +56,11 @@ engineered and validated before any power output is enabled.
 python3 host-agent/apolo_host_agent.py
 ```
 
-In a second terminal on the laptop, after the phone has authorized ADB:
+Then, in a second terminal on the laptop (with authorized ADB):
 
 ```sh
 adb reverse tcp:8765 tcp:8765
 ```
 
-The endpoint can then be checked from the Android device at
-`http://127.0.0.1:8765/v1/identity`. This is an experimental host-side
-identity bridge, not a DC sensor and not a charging controller.
+This agent is a real read-only OS inventory collector. It is not a DC
+electrical sensor or a charging controller.
