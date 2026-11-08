@@ -1,4 +1,7 @@
 import unittest
+import json
+import tempfile
+from pathlib import Path
 
 from amis_virtual_camera import AMISVirtualCameraCore, MAX_FRAME_BYTES
 from amis_vision_engine import AMISMotherboardVisionEngine
@@ -27,10 +30,18 @@ class VirtualCameraCoreTests(unittest.TestCase):
             core.ingest(b"x" * (MAX_FRAME_BYTES + 1))
         self.assertEqual(core.status()["rejected_frames"], 2)
 
-    def test_vision_engine_reports_source_and_never_claims_physical_camera(self):
+    def test_vision_engine_returns_capture_provenance_without_guessing(self):
         frame = AMISVirtualCameraCore().ingest(b"\xff\xd8\xffdemo")
-        self.assertEqual(frame.source_id, "android-camerax")
-        self.assertEqual(AMISVirtualCameraCore().status()["physical_camera_embedded"], False)
+        with tempfile.TemporaryDirectory() as tmp:
+            catalogue = Path(tmp) / "catalogue.json"
+            catalogue.write_text(json.dumps({"boards": []}), encoding="utf-8")
+            result = AMISMotherboardVisionEngine().inspect(frame, {}, catalogue)
+        self.assertEqual(result["capture"]["source_id"], "android-camerax")
+        self.assertEqual(result["capture"]["sha256"], frame.sha256)
+        self.assertIsNone(result["exact_board_code"])
+        self.assertFalse(result["image_retained"])
+        self.assertEqual(result["result"], "UNKNOWN")
+        self.assertFalse(AMISVirtualCameraCore().status()["physical_camera_embedded"])
 
 
 if __name__ == "__main__":
