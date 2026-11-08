@@ -137,7 +137,7 @@ def inspect_image(image: bytes, electronic_evidence: dict,
         "catalogue_matches": matches,
         "electronic_evidence": electronic_evidence,
         "cross_check": {
-            "electronic_fields_present": bool(electronic_tokens),
+            "electronic_fields_present": any(value not in (None, "") for value in raw_fields.values()),
             "exact_catalogue_match_count": len(matches),
             "manufacturer_corroborated": corroborated,
         },
