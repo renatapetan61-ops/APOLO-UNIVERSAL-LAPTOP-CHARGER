@@ -1,7 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
     <application
         android:allowBackup="false"
+        android:usesCleartextTraffic="true"
         android:label="APOLO Charger"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
