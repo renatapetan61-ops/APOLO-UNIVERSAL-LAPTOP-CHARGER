@@ -153,24 +153,9 @@ private fun BmsScreen(scenario: DemoScenario, t: DemoTelemetry) {
 }
 
 @Composable
-private fun LegacyConnectionScreen() {
-    val laptop = ApoloLaptopProfiles.POSITIVO_UNIQUE_TV_S2065
-    Text("Conectividade", style = MaterialTheme.typography.headlineMedium)
-    Text("Notebook-alvo: ${laptop.model}", style = MaterialTheme.typography.titleMedium)
-    ListItem(headlineContent = { Text("Referência do carregador original") }, supportingContent = { Text("${laptop.nominalInputVoltageV} V × ${laptop.adapterRatedCurrentA} A = ${"%.2f".format(java.util.Locale.US, laptop.adapterRatedPowerW)} W (valor informado; não verificado)") })
-    ListItem(headlineContent = { Text("Conector e polaridade") }, supportingContent = { Text("Ainda não identificados. Perfil de compatibilidade incompleto.") })
-    ListItem(headlineContent = { Text("Autorização de saída") }, supportingContent = { Text(if (laptop.canAuthorizePowerOutput()) "Perfil verificado" else "BLOQUEADA — falta validação elétrica do conector, polaridade e entrada do notebook") })
-    ListItem(headlineContent = { Text("USB Host") }, supportingContent = { Text("Declarado como recurso opcional; comunicação ainda não implementada") })
-    ListItem(headlineContent = { Text("Bluetooth LE") }, supportingContent = { Text("Integração ainda não implementada") })
-    ListItem(headlineContent = { Text("Protocolo APOLO") }, supportingContent = { Text("Parser binário e testes locais; sem dispositivo físico") })
-    Text("Um cabo USB-C para USB-A pode servir para comunicação em combinações compatíveis. Ele não transforma a porta USB-A do notebook em entrada de carga.")
-    SafetyNotice()
-}
-
-@Composable
 private fun AboutScreen() {
     Text("Sobre o projeto", style = MaterialTheme.typography.headlineMedium)
-    Text("APOLO Universal Laptop Charger — versão 0.2.0")
+    Text("APOLO Universal Laptop Charger — versão 0.4.0")
     Text("Aplicativo em desenvolvimento, com painel e simulador local. Não há conexão com bateria nem controle de energia.")
     Text("Metas de engenharia: até 240 W, 1.500 Wh LiFePO4 e saída DC pretendida de 19 V, sujeitas a projeto, compatibilidade e certificação.")
     SafetyNotice()
