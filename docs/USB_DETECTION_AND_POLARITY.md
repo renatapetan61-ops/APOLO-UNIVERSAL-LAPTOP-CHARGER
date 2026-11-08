@@ -19,3 +19,15 @@ A medição exige um circuito de medição isolado, com limitação de corrente 
 
 ## Fail-closed
 A saída do Power Module continua bloqueada. Uma identificação USB, mesmo futura, nunca libera potência por si só; será necessária validação elétrica independente do perfil, sensores, limites e proteções físicas.
+
+
+## Núcleos internos adicionados na versão 0.5.0
+
+### Analisador interno de polaridade
+`DcPolaritySensorCore` é o analisador de software do sensor APOLO. Recebe uma amostra center-to-sleeve em volts, idade da amostra, indicação de origem ADC autenticada e calibração validada por engenharia. Classifica centro positivo, centro negativo, ambíguo, amostra vencida ou inválida. Sem ADC físico isolado, nenhuma amostra é produzida e o estado fica `NO_MEASUREMENT`. O algoritmo não cria um sensor elétrico por software.
+
+### Identidade criptográfica do notebook
+`UsbLaptopAuthentication` implementa o verificador HMAC-SHA256 de desafio-resposta para o futuro agente APOLO instalado no notebook. Rejeita modelo diferente, nonce divergente, chave ausente/fraca ou assinatura inválida. Nenhuma chave é embutida no aplicativo. A autenticação só é possível após provisionamento seguro e implementação do transporte compatível no host.
+
+### Limite de uso
+Os dois núcleos são internos ao aplicativo e testados por testes unitários. Eles não ativam a saída DC. O cabo USB comum, sem um protocolo/agente e sem interface de medição elétrica, não consegue fornecer nem a identidade autenticada do host nem a polaridade do jack.
