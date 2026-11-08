@@ -42,6 +42,7 @@ class AMISVirtualCameraCore:
 
     def __init__(self) -> None:
         self._last_frame: dict | None = None
+        self._sources: dict[str, dict] = {}
         self._accepted_frames = 0
         self._rejected_frames = 0
 
@@ -70,6 +71,9 @@ class AMISVirtualCameraCore:
             "captured_at": frame.captured_at, "media_type": frame.media_type,
             "byte_length": frame.byte_length, "sha256": frame.sha256,
         }
+        source = self._sources.setdefault(frame.source_id, {"source_id": frame.source_id, "accepted_frames": 0, "last_frame": None})
+        source["accepted_frames"] += 1
+        source["last_frame"] = self._last_frame
         return frame
 
     def status(self) -> dict:
@@ -82,5 +86,7 @@ class AMISVirtualCameraCore:
             "accepted_frames": self._accepted_frames,
             "rejected_frames": self._rejected_frames,
             "last_frame": self._last_frame,
+            "connected_image_sources_seen": list(self._sources.values()),
+            "source_count": len(self._sources),
             "retention": "in-memory metadata only; frame bytes discarded after processing",
         }
