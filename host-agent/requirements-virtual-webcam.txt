@@ -1,0 +1,4 @@
+# Optional Windows virtual webcam relay only
+opencv-python>=4.10,<5
+numpy>=1.26,<3
+pyvirtualcam>=0.13,<1
