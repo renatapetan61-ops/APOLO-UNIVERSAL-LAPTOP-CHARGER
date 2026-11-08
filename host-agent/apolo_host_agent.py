@@ -211,6 +211,10 @@ def amis_status() -> dict:
                 "connection": "owner-authorized ADB reverse bridge or same-host loopback",
                 "status": "CLIENT_ENDPOINT_AVAILABLE; phone camera must be opened by the Android app",
             },
+            "android_camera_x": {
+                "transport": "HTTP POST /v1/virtual-camera/frames",
+                "status": "LEGACY_ALIAS; same Android CameraX source",
+            },
             "usb_uvc_camera": {
                 "transport": "host-local OpenCV capture via /v1/camera/capture",
                 "discovery": discover_cameras(),
