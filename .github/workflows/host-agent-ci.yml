@@ -1,0 +1,25 @@
+name: Host Agent CI
+on:
+  push:
+    paths:
+      - "host-agent/**"
+      - ".github/workflows/host-agent-ci.yml"
+  pull_request:
+    paths:
+      - "host-agent/**"
+      - ".github/workflows/host-agent-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  host-agent-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile host agent and OCR module
+        run: python -m py_compile host-agent/apolo_host_agent.py host-agent/board_ocr.py
+      - name: Run host agent OCR tests
+        working-directory: host-agent
+        run: python -m unittest -v
