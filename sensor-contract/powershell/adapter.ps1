@@ -1,5 +1,5 @@
 $line = [Console]::In.ReadLine()
-$f = $line -split "`t", -1
+$f = $line.Split([char]9)
 $timestamp = [long]0
 $ok = $f.Count -eq 6 -and $f[0] -eq "APOLO1" -and
   -not [string]::IsNullOrWhiteSpace($f[1]) -and
