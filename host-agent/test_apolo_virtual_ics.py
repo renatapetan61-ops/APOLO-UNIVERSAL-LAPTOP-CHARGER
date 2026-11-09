@@ -19,6 +19,13 @@ class VirtualIcRuntimeTests(unittest.TestCase):
         safety = next(item for item in result["chips"] if item["id"] == "APOLO-SAFETY-IC")
         self.assertEqual(safety["result"], "REVIEW_REQUIRED")
 
+    def test_runtime_reports_canonical_observation_contract(self):
+        result = ApoloVirtualIcRuntime().execute([], {"source": "test", "battery": [{"capacity": 75}]})
+        contract = result["observation_contract"]
+        self.assertEqual(contract["protocol"], "APOLO1")
+        self.assertGreater(contract["accepted"], 0)
+        self.assertEqual(contract["rejected"], 0)
+
     def test_runtime_never_claims_physical_sensor_measurements(self):
         result = ApoloVirtualIcRuntime().execute([])
         self.assertFalse(result["physical_sensor_measurements"])
