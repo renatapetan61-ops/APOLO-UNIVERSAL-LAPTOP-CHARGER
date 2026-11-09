@@ -20,7 +20,7 @@ from amis_camera import discover_cameras, capture_frame
 from amis_virtual_camera import AMISVirtualCameraCore
 from amis_vision_engine import AMISMotherboardVisionEngine
 from amis_hardware_mapper import map_components, render_svg
-from apolo_diagnostics import run_diagnostics
+from apolo_diagnostics import run_diagnostics, run_windows_system_file_repair
 
 HOST, PORT = "127.0.0.1", 8765
 PROTOCOL = "apolo-host-agent/4"
@@ -283,6 +283,28 @@ def amis_status() -> dict:
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
+        if self.path == "/v1/repairs/windows/system-file-check":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length < 1 or length > 4096:
+                    self.send_error(400, "Invalid request size")
+                    return
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                result = run_windows_system_file_repair(payload.get("confirm") is True)
+                body = json.dumps(result, separators=(",", ":"), default=str).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
+            except PermissionError as exc:
+                self.send_error(403, str(exc))
+            except RuntimeError as exc:
+                self.send_error(409, str(exc))
+            except (ValueError, json.JSONDecodeError) as exc:
+                self.send_error(400, str(exc))
+            return
         if self.path == "/v1/diagnostics/run":
             payload = run_diagnostics()
             body = json.dumps(payload, separators=(",", ":"), default=str).encode()
@@ -351,7 +373,19 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(500)
 
     def do_GET(self):
-        if self.path == "/v1/amis/status":
+        if self.path == "/v1/health":
+            try:
+                reverse = subprocess.run(["adb", "reverse", "--list"], capture_output=True,
+                                         text=True, timeout=5, check=False)
+                bridge = reverse.stdout.strip() if reverse.returncode == 0 else "ADB_REVERSE_UNAVAILABLE"
+            except (OSError, subprocess.TimeoutExpired):
+                bridge = "ADB_NOT_AVAILABLE"
+            payload = {"protocol": PROTOCOL, "agent": "READY",
+                       "host": platform.system(), "port": PORT,
+                       "adb_reverse": bridge,
+                       "usb_test": "PHONE_TO_HOST_LOOPBACK_REACHABLE",
+                       "note": "HTTP response proves the app reached this agent through the configured bridge; it does not test electrical USB power or data integrity."}
+        elif self.path == "/v1/amis/status":
             payload = amis_status()
         elif self.path == "/v1/virtual-camera/status":
             payload = VIRTUAL_CAMERA.status()
