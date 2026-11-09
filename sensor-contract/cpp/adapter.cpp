@@ -14,7 +14,11 @@ int main() {
         !fields[1].empty() && !fields[2].empty() &&
         (fields[3] == "HOST_OS" || fields[3] == "PHYSICAL_INTERFACE") &&
         !fields[4].empty() && !fields[5].empty();
-    try { ok = ok && std::stoull(fields.at(5)) > 0; } catch (...) { ok = false; }
+    try {
+        std::size_t parsed = 0;
+        const auto timestamp = std::stoull(fields.at(5), &parsed);
+        ok = ok && parsed == fields.at(5).size() && timestamp > 0;
+    } catch (...) { ok = false; }
     std::cout << (ok ? "ACCEPTED" : "REJECTED") << '\n';
     return ok ? 0 : 2;
 }
