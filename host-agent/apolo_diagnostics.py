@@ -127,6 +127,36 @@ def _linux_checks() -> tuple[list[dict], dict]:
             except (OSError, ValueError):
                 continue
 
+    supplies = []
+    try:
+        for entry in Path("/sys/class/power_supply").iterdir():
+            kind_path = entry / "type"
+            try:
+                kind = kind_path.read_text().strip()
+            except OSError:
+                continue
+            item = {"name": entry.name, "type": kind}
+            for key in ("status", "capacity", "voltage_now", "current_now", "power_now", "online", "technology"):
+                try:
+                    item[key] = (entry / key).read_text().strip()
+                except OSError:
+                    pass
+            supplies.append(item)
+    except OSError:
+        pass
+    telemetry["battery"] = [item for item in supplies if item.get("type") == "Battery"]
+    telemetry["power_adapter"] = [item for item in supplies if item.get("type") in ("Mains", "USB", "USB_C")]
+    typec = Path("/sys/class/typec")
+    try:
+        telemetry["usb_typec"] = sorted(path.name for path in typec.iterdir())
+    except OSError:
+        telemetry["usb_typec"] = []
+    usb_devices = Path("/sys/bus/usb/devices")
+    try:
+        telemetry["usb_devices"] = sorted(path.name for path in usb_devices.iterdir())
+    except OSError:
+        telemetry["usb_devices"] = []
+
     dmi = {}
     for key, filename in (("board_vendor", "board_vendor"), ("board_name", "board_name"),
                           ("board_version", "board_version"), ("system_vendor", "sys_vendor"),
@@ -191,10 +221,13 @@ def _windows_checks() -> tuple[list[dict], dict]:
     $bios=Get-CimInstance Win32_BIOS
     $bad=@(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object {$_.ConfigManagerErrorCode -ne $null -and $_.ConfigManagerErrorCode -ne 0} | Select-Object -First 80 Name,PNPDeviceID,ConfigManagerErrorCode)
     $temps=@(Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature -ErrorAction SilentlyContinue | Select-Object InstanceName,CurrentTemperature)
+    $batteries=@(Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue | Select-Object Name,Status,BatteryStatus,EstimatedChargeRemaining,DesignVoltage)
+    $usb=@(Get-CimInstance Win32_USBController -ErrorAction SilentlyContinue | Select-Object Name,Status,PNPDeviceID)
     [pscustomobject]@{
       cpu=@{name=$cpu.Name;load_percent=$cpu.LoadPercentage;cores=$cpu.NumberOfCores;logical_processors=$cpu.NumberOfLogicalProcessors}
       memory=@{total_bytes=$os.TotalVisibleMemorySize*1024;free_bytes=$os.FreePhysicalMemory*1024}
       gpus=$gpu;disks=$disks;bad_devices=$bad;temperatures=$temps
+      battery=$batteries;usb_devices=$usb
       motherboard=@{manufacturer=$board.Manufacturer;product=$board.Product;version=$board.Version;bios_vendor=$bios.Manufacturer;bios_version=($bios.SMBIOSBIOSVersion -join ' ')}
     } | ConvertTo-Json -Depth 6 -Compress
     """
@@ -205,7 +238,7 @@ def _windows_checks() -> tuple[list[dict], dict]:
         try:
             data = json.loads(output)
             telemetry.update({key: data.get(key) for key in
-                              ("cpu", "memory", "gpus", "disks", "temperatures", "motherboard")})
+                              ("cpu", "memory", "gpus", "disks", "temperatures", "motherboard", "battery", "usb_devices")})
             for device in data.get("bad_devices") or []:
                 code = device.get("ConfigManagerErrorCode")
                 name = device.get("Name") or "Dispositivo sem nome"
@@ -308,7 +341,7 @@ def run_diagnostics() -> dict:
         findings, telemetry = _mac_checks()
     else:
         findings, telemetry = [], {"source": "platform APIs", "availability": "unsupported platform"}
-    virtual_runtime = ApoloVirtualIcRuntime().execute(findings)
+    virtual_runtime = ApoloVirtualIcRuntime().execute(findings, telemetry)
     corrected: list[dict] = []
     return {
         "protocol": "apolo-diagnostic-report/2",
