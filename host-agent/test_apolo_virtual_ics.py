@@ -6,7 +6,7 @@ from apolo_virtual_ics import ApoloVirtualIcRuntime
 class VirtualIcRuntimeTests(unittest.TestCase):
     def test_all_four_independent_chips_execute(self):
         result = ApoloVirtualIcRuntime().execute([])
-        self.assertEqual(result["runtime"], "APOLO-VIRTUAL-IC-RUNTIME/1")
+        self.assertEqual(result["runtime"], "APOLO-VIRTUAL-IC-RUNTIME/2")
         self.assertEqual(len(result["chips"]), 4)
         self.assertEqual({item["id"] for item in result["chips"]}, {
             "APOLO-BMS-IC", "APOLO-CHARGE-IC", "APOLO-SAFETY-IC", "APOLO-USB-PD-IC"
