@@ -17,8 +17,9 @@ data class VirtualObservation(
     val source: String
 ) {
     fun isUsableForDiagnostics(): Boolean =
-        value != null && origin != ObservationOrigin.UNKNOWN &&
-            origin != ObservationOrigin.TEST_FIXTURE && source.isNotBlank()
+        name.isNotBlank() && !value.isNullOrBlank() &&
+            origin in setOf(ObservationOrigin.HOST_OS, ObservationOrigin.PHYSICAL_INTERFACE) &&
+            source.isNotBlank() && observedAtEpochMs > 0L
 }
 
 data class VirtualChipStatus(
