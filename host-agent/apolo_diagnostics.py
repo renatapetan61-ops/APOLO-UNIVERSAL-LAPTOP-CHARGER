@@ -343,6 +343,8 @@ def run_diagnostics() -> dict:
         findings, telemetry = [], {"source": "platform APIs", "availability": "unsupported platform"}
     virtual_runtime = ApoloVirtualIcRuntime().execute(findings, telemetry)
     corrected: list[dict] = []
+    actionable = [item for item in findings if item.get("severity") != "info"]
+    observations = [item for item in findings if item.get("severity") == "info"]
     return {
         "protocol": "apolo-diagnostic-report/2",
         "completed_at": datetime.now(timezone.utc).isoformat(),
@@ -355,8 +357,9 @@ def run_diagnostics() -> dict:
                     "physical_measurements_available": False,
                     "telemetry": telemetry,
                     "note": "Sensores virtuais analisam dados reais expostos pelo sistema operacional; não substituem sensores elétricos físicos."},
-        "summary": {"found": len(findings), "corrected": 0, "not_corrected": len(findings)},
-        "findings": findings, "corrected": corrected, "not_corrected": findings,
+        "summary": {"found": len(actionable), "corrected": 0, "not_corrected": len(actionable)},
+        "findings": actionable, "observations": observations,
+        "corrected": corrected, "not_corrected": actionable,
         "repair_policy": {"mode": "CONSENT_REQUIRED",
                           "available_actions": ["WINDOWS_SFC_REPAIR"] if system == "Windows" else [],
                           "reason": "Alterações exigem confirmação explícita, permissões adequadas e verificação posterior."},
