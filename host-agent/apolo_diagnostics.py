@@ -106,8 +106,11 @@ def _linux_checks() -> tuple[list[dict], dict]:
         pass
 
     for hwmon in Path("/sys/class/hwmon").glob("hwmon*"):
-        chip = (Path(read := str(hwmon / "name")).read_text().strip()
-                if Path(read).exists() else hwmon.name)
+        name_path = hwmon / "name"
+        try:
+            chip = name_path.read_text().strip() or hwmon.name
+        except OSError:
+            chip = hwmon.name
         for input_path in hwmon.glob("temp*_input"):
             try:
                 raw = int(input_path.read_text().strip())
