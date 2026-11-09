@@ -178,11 +178,18 @@ def _linux_checks() -> tuple[list[dict], dict]:
                 modalias = (device / "modalias").read_text().strip()
             except OSError:
                 pass
-            item = {"pci_id": device.name, "driver": driver, "modalias": modalias}
+            class_code = None
+            try:
+                class_code = (device / "class").read_text().strip()
+            except OSError:
+                pass
+            item = {"pci_id": device.name, "class_code": class_code,
+                    "driver": driver, "modalias": modalias}
             telemetry["drivers"].append(item)
-            if not driver:
-                findings.append(_finding("PCI_DRIVER_MISSING", "Dispositivo PCI sem driver associado",
-                    f"Dispositivo {device.name}; modalias={modalias or 'indisponível'}.",
+            driver_relevant = bool(class_code and class_code.lower().startswith(("0x01", "0x02", "0x03", "0x04")))
+            if not driver and driver_relevant:
+                findings.append(_finding("PCI_DRIVER_MISSING", "Controlador PCI sem driver associado",
+                    f"Dispositivo {device.name}; classe={class_code}; modalias={modalias or 'indisponível'}.",
                     "warning", str(device / "driver"),
                     "Confirme o fabricante e instale um driver compatível obtido de fonte oficial."))
     except OSError:
@@ -194,6 +201,28 @@ def _linux_checks() -> tuple[list[dict], dict]:
             telemetry["storage_devices"] = json.loads(lsblk).get("blockdevices", [])
         except json.JSONDecodeError:
             telemetry["storage_devices"] = []
+    telemetry["smart"] = []
+    if shutil.which("smartctl"):
+        try:
+            block_devices = [item.name for item in Path("/sys/block").iterdir()
+                             if not item.name.startswith(("loop", "ram", "zram"))][:4]
+        except OSError:
+            block_devices = []
+        for name in block_devices:
+            output = _run(["smartctl", "-H", "-j", f"/dev/{name}"], 8)
+            if not output:
+                continue
+            try:
+                smart = json.loads(output)
+                passed = smart.get("smart_status", {}).get("passed")
+                record = {"device": f"/dev/{name}", "passed": passed, "source": "smartctl -H -j"}
+                telemetry["smart"].append(record)
+                if passed is False:
+                    findings.append(_finding("DISK_SMART_FAILED", "SMART reportou falha no armazenamento",
+                        f"/dev/{name}: o autoteste SMART informa estado não aprovado.", "critical",
+                        "smartctl -H -j", "Faça backup imediatamente e procure assistência para substituir a unidade."))
+            except (json.JSONDecodeError, AttributeError):
+                continue
     lspci = _run(["lspci", "-nn"], 8)
     if lspci:
         telemetry["pci_devices"] = lspci.splitlines()
@@ -217,6 +246,7 @@ def _windows_checks() -> tuple[list[dict], dict]:
     $os=Get-CimInstance Win32_OperatingSystem
     $gpu=@(Get-CimInstance Win32_VideoController | ForEach-Object {@{name=$_.Name;driver_version=$_.DriverVersion;status=$_.Status;video_processor=$_.VideoProcessor}})
     $disks=@(Get-CimInstance Win32_DiskDrive | ForEach-Object {@{model=$_.Model;status=$_.Status;firmware=$_.FirmwareRevision;device=$_.DeviceID}})
+    $physicalDisks=@(Get-PhysicalDisk -ErrorAction SilentlyContinue | ForEach-Object {@{name=$_.FriendlyName;health=$_.HealthStatus;operational=@($_.OperationalStatus);media=$_.MediaType;size=$_.Size}})
     $board=Get-CimInstance Win32_BaseBoard
     $bios=Get-CimInstance Win32_BIOS
     $bad=@(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object {$_.ConfigManagerErrorCode -ne $null -and $_.ConfigManagerErrorCode -ne 0} | Select-Object -First 80 Name,PNPDeviceID,ConfigManagerErrorCode)
@@ -226,7 +256,7 @@ def _windows_checks() -> tuple[list[dict], dict]:
     [pscustomobject]@{
       cpu=@{name=$cpu.Name;load_percent=$cpu.LoadPercentage;cores=$cpu.NumberOfCores;logical_processors=$cpu.NumberOfLogicalProcessors}
       memory=@{total_bytes=$os.TotalVisibleMemorySize*1024;free_bytes=$os.FreePhysicalMemory*1024}
-      gpus=$gpu;disks=$disks;bad_devices=$bad;temperatures=$temps
+      gpus=$gpu;disks=$disks;physical_disks=$physicalDisks;bad_devices=$bad;temperatures=$temps
       battery=$batteries;usb_devices=$usb
       motherboard=@{manufacturer=$board.Manufacturer;product=$board.Product;version=$board.Version;bios_vendor=$bios.Manufacturer;bios_version=($bios.SMBIOSBIOSVersion -join ' ')}
     } | ConvertTo-Json -Depth 6 -Compress
@@ -238,7 +268,7 @@ def _windows_checks() -> tuple[list[dict], dict]:
         try:
             data = json.loads(output)
             telemetry.update({key: data.get(key) for key in
-                              ("cpu", "memory", "gpus", "disks", "temperatures", "motherboard", "battery", "usb_devices")})
+                              ("cpu", "memory", "gpus", "disks", "physical_disks", "temperatures", "motherboard", "battery", "usb_devices")})
             for device in data.get("bad_devices") or []:
                 code = device.get("ConfigManagerErrorCode")
                 name = device.get("Name") or "Dispositivo sem nome"
@@ -269,6 +299,15 @@ def _windows_checks() -> tuple[list[dict], dict]:
                         f"{disk.get('model')}: status {disk.get('status')}.", "warning",
                         "WMI Win32_DiskDrive.Status",
                         "Faça backup imediato e verifique SMART com ferramenta oficial do fabricante."))
+            for disk in data.get("physical_disks") or []:
+                health = str(disk.get("health") or "").lower()
+                operational = " ".join(str(x) for x in (disk.get("operational") or [])).lower()
+                if health and health not in ("healthy", "unknown") or any(
+                    token in operational for token in ("lost communication", "failed", "unhealthy")
+                ):
+                    findings.append(_finding("PHYSICAL_DISK_HEALTH_WARNING", "Disco físico reportou alerta de saúde",
+                        f"{disk.get('name')}: health={disk.get('health')}; operational={operational}.",
+                        "critical", "Get-PhysicalDisk", "Faça backup imediato e execute diagnóstico SMART do fabricante."))
             for gpu in data.get("gpus") or []:
                 status = str(gpu.get("status") or "").lower()
                 if status and status != "ok":
