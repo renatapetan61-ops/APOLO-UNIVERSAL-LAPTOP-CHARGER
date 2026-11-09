@@ -9,7 +9,7 @@ import (
 )
 
 func valid(line string) bool {
-  f := strings.Split(strings.TrimRight(line, "\\r\\n"), "\\t")
+  f := strings.Split(strings.TrimRight(line, "\r\n"), "\t")
   if len(f) != 6 || f[0] != "APOLO1" || strings.TrimSpace(f[1]) == "" ||
     strings.TrimSpace(f[2]) == "" || (f[3] != "HOST_OS" && f[3] != "PHYSICAL_INTERFACE") ||
     strings.TrimSpace(f[4]) == "" { return false }
