@@ -12,6 +12,7 @@ on:
     paths:
       - "android/**"
       - "simulator/**"
+      - "sensor-contract/**"
       - "*.gradle.kts"
       - "gradle.properties"
       - ".github/workflows/android-ci.yml"
