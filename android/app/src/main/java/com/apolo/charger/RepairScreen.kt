@@ -46,7 +46,7 @@ private fun parseApoloReport(json: JSONObject): RepairReport {
     val policy = json.optJSONObject("repair_policy") ?: JSONObject()
     val actions = policy.optJSONArray("available_actions")
     val repairAvailable = (0 until (actions?.length() ?: 0)).any {
-        actions?.optString(it) == "WINDOWS_SFC_REPAIR"
+        actions?.optString(it) == "WINDOWS_COMPONENT_STORE_AND_SFC_REPAIR"
     }
     return RepairReport(
         system = host.optString("system", "Unknown"),
@@ -175,7 +175,7 @@ fun RepairScreen() {
         }
         Text(status, style = MaterialTheme.typography.bodyMedium)
         Text("As verificações incluem CPU, memória, GPU, armazenamento, drivers e identificação eletrônica da placa-mãe, conforme os dados expostos pelo sistema operacional.")
-        Text("Correções que alteram o sistema exigem confirmação. Nesta versão, o reparo disponível é limitado à verificação dos arquivos protegidos do Windows com SFC, quando o agente está elevado como Administrador.")
+        Text("Correções que alteram o sistema exigem confirmação. No Windows, o APOLO verifica o armazenamento de componentes com DISM e os arquivos protegidos com SFC; só contabiliza reparo após verificação posterior limpa. É necessário iniciar o agente como Administrador.")
         repairMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
     }
 
@@ -216,7 +216,7 @@ fun RepairScreen() {
         AlertDialog(
             onDismissRequest = { repairPrompt = false },
             title = { Text("Autorizar reparo do Windows?") },
-            text = { Text("O APOLO executará SFC /verifyonly e, se encontrar corrupção, SFC /scannow. Isso pode alterar arquivos protegidos do Windows, exigir privilégios de Administrador e levar vários minutos. Depois será executada uma nova verificação. Deseja continuar?") },
+            text = { Text("O APOLO executará DISM /ScanHealth e SFC /verifyonly. Se houver corrupção reparável, poderá executar DISM /RestoreHealth e/ou SFC /scannow. Isso altera componentes do Windows, exige privilégios de Administrador, conexão com a origem de reparo do Windows quando necessária e pode levar bastante tempo. Uma verificação posterior será obrigatória. Deseja continuar?") },
             confirmButton = { Button(onClick = { executeRepair() }) { Text("Autorizar e continuar") } },
             dismissButton = { TextButton(onClick = { repairPrompt = false }) { Text("Cancelar") } }
         )
