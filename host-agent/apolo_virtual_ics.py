@@ -1,11 +1,11 @@
 """Four independently executable APOLO virtual controller modules.
 
-All inputs are software observations from the host OS. They are not physical
-sensors and cannot measure voltage/current/temperature without a real interface.
+The controllers receive normalized, provenance-tagged OS observations. They are
+software only: they do not drive electrical actuators or replace physical sensors.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import platform
 
@@ -20,40 +20,58 @@ class VirtualSensorObservation:
 
 
 class VirtualSensorEngine:
-    def collect(self, findings: list[dict]) -> list[VirtualSensorObservation]:
+    def collect(self, findings: list[dict], telemetry: dict | None = None) -> list[VirtualSensorObservation]:
         now = datetime.now(timezone.utc).isoformat()
         observations = [
             VirtualSensorObservation("host_os", platform.system(), "platform.system()", observed_at=now),
             VirtualSensorObservation("host_release", platform.release(), "platform.release()", observed_at=now),
             VirtualSensorObservation("finding_count", str(len(findings)), "APOLO diagnostic engine", observed_at=now),
         ]
+
+        def flatten(value, prefix: str, source: str):
+            if isinstance(value, dict):
+                for key, child in value.items():
+                    flatten(child, f"{prefix}.{key}" if prefix else str(key), source)
+            elif isinstance(value, (list, tuple)):
+                for index, child in enumerate(value):
+                    flatten(child, f"{prefix}[{index}]", source)
+            elif value is not None and isinstance(value, (str, int, float, bool)):
+                observations.append(VirtualSensorObservation(
+                    prefix, str(value), source, origin="HOST_OS", observed_at=now
+                ))
+
+        if telemetry:
+            source = str(telemetry.get("source", "host operating system"))
+            flatten(telemetry, "telemetry", source)
         for finding in findings:
             observations.append(VirtualSensorObservation(
                 "diagnostic_finding", str(finding.get("code", "UNKNOWN")),
                 str(finding.get("source", "unknown")), observed_at=now
             ))
-        return observations
+        return [item for item in observations
+                if item.name.strip() and item.source.strip() and item.observed_at]
 
 
 class ApoloBmsIc:
     chip_id = "APOLO-BMS-IC"
 
     def execute(self, observations: list[VirtualSensorObservation]) -> dict:
-        battery_items = [o for o in observations if "battery" in o.name.lower()]
+        items = [o for o in observations if "battery" in o.name.lower()]
         return {"id": self.chip_id, "state": "EXECUTED",
-                "processed_observations": len(battery_items),
-                "result": "NO_BATTERY_SENSOR_CHANNEL_EXPOSED" if not battery_items else "BATTERY_EVIDENCE_RECEIVED",
-                "notes": ["Não estima tensão, corrente, temperatura nem SoC sem dados fornecidos por sensores/controladores reais."]}
+                "processed_observations": len(items),
+                "result": "BATTERY_EVIDENCE_RECEIVED" if items else "NO_BATTERY_SENSOR_CHANNEL_EXPOSED",
+                "notes": ["Avalia somente dados de bateria realmente expostos pelo sistema operacional.",
+                          "Não estima tensão de célula, corrente, temperatura ou SoC sem fonte correspondente."]}
 
 
 class ApoloChargeIc:
     chip_id = "APOLO-CHARGE-IC"
 
     def execute(self, observations: list[VirtualSensorObservation]) -> dict:
-        power_items = [o for o in observations if any(x in o.name.lower() for x in ("power", "adapter", "charge"))]
+        items = [o for o in observations if any(x in o.name.lower() for x in ("power", "adapter", "charge"))]
         return {"id": self.chip_id, "state": "EXECUTED",
-                "processed_observations": len(power_items),
-                "result": "POWER_TELEMETRY_NOT_EXPOSED" if not power_items else "POWER_EVIDENCE_RECEIVED",
+                "processed_observations": len(items),
+                "result": "POWER_TELEMETRY_RECEIVED" if items else "POWER_TELEMETRY_NOT_EXPOSED",
                 "notes": ["Analisa telemetria do host; não controla conversores nem habilita carregamento."]}
 
 
@@ -65,7 +83,8 @@ class ApoloSafetyIc:
         return {"id": self.chip_id, "state": "EXECUTED",
                 "processed_observations": len(observations),
                 "result": "REVIEW_REQUIRED" if severe else "NO_CRITICAL_FINDING_CONFIRMED",
-                "notes": [f"{severe} achado(s) crítico(s)/alto(s) requerem revisão." if severe else "Nenhum achado crítico/alto foi confirmado pelas fontes consultadas.",
+                "notes": [f"{severe} achado(s) crítico(s)/alto(s) requerem revisão." if severe else
+                          "Nenhum achado crítico/alto foi confirmado pelas fontes consultadas.",
                           "Este controlador virtual não substitui proteção elétrica física."]}
 
 
@@ -73,11 +92,11 @@ class ApoloUsbPdIc:
     chip_id = "APOLO-USB-PD-IC"
 
     def execute(self, observations: list[VirtualSensorObservation]) -> dict:
-        usb_items = [o for o in observations if "usb" in o.name.lower()]
+        items = [o for o in observations if "usb" in o.name.lower() or "typec" in o.name.lower()]
         return {"id": self.chip_id, "state": "EXECUTED",
-                "processed_observations": len(usb_items),
-                "result": "PD_CONTRACT_NOT_AVAILABLE",
-                "notes": ["O agente não negocia USB Power Delivery; apenas poderá analisar evidências USB disponibilizadas pelo host."]}
+                "processed_observations": len(items),
+                "result": "USB_HOST_EVIDENCE_RECEIVED" if items else "USB_PD_CONTRACT_NOT_AVAILABLE",
+                "notes": ["Analisa inventário USB exposto pelo host; não negocia nem confirma contrato USB Power Delivery."]}
 
 
 class ApoloVirtualIcRuntime:
@@ -85,8 +104,8 @@ class ApoloVirtualIcRuntime:
         self.sensors = VirtualSensorEngine()
         self.chips = (ApoloBmsIc(), ApoloChargeIc(), ApoloSafetyIc(), ApoloUsbPdIc())
 
-    def execute(self, findings: list[dict]) -> dict:
-        observations = self.sensors.collect(findings)
+    def execute(self, findings: list[dict], telemetry: dict | None = None) -> dict:
+        observations = self.sensors.collect(findings, telemetry)
         results = []
         for chip in self.chips:
             if isinstance(chip, ApoloSafetyIc):
@@ -94,7 +113,7 @@ class ApoloVirtualIcRuntime:
             else:
                 results.append(chip.execute(observations))
         return {
-            "runtime": "APOLO-VIRTUAL-IC-RUNTIME/1",
+            "runtime": "APOLO-VIRTUAL-IC-RUNTIME/2",
             "sensor_mode": "VIRTUAL_SOFTWARE_OBSERVATIONS",
             "observation_count": len(observations),
             "physical_sensor_measurements": False,
