@@ -20,6 +20,12 @@ Projeto integrado de aplicativo Android, simulador e arquitetura de referência 
 
 ## Diagnóstico APOLO e chips virtuais
 
+A tela **Reparar** agora coleta telemetria adicional do notebook (CPU, memória, GPU, discos, temperaturas, drivers e identidade SMBIOS/placa-mãe, quando o SO expõe esses dados). O agente também oferece `GET /v1/health` para testar se o aplicativo alcança o notebook pela ponte USB/ADB. O fluxo de reparo Windows SFC requer confirmação no aplicativo, agente elevado como Administrador e verificação posterior. O teste de rede/ADB não valida potência elétrica nem integridade física do cabo.
+
+A pasta `sensor-contract/` contém validadores executáveis do contrato de observações em 15 linguagens, com compilação e testes no GitHub Actions. Esses validadores processam dados normalizados; não são 15 drivers de hardware nem 15 sensores físicos.
+
+## Diagnóstico APOLO e chips virtuais
+
 - Quatro controladores de software independentes: APOLO-BMS IC, APOLO-CHARGE IC, APOLO-SAFETY IC e APOLO-USB-PD IC.
 - Motor de sensores virtuais que aceita somente observações identificadas do sistema operacional; não inventa leituras físicas.
 - Endpoint local do agente `POST /v1/diagnostics/run`, executado sob solicitação explícita do usuário.
