@@ -52,6 +52,7 @@ class ApoloDiagnosticsTests(unittest.TestCase):
 
     def test_sfc_counts_repair_only_after_clean_postcheck(self):
         outputs = [
+            "No component store corruption detected.",
             "Windows Resource Protection found integrity violations.",
             "Windows Resource Protection found corrupt files and successfully repaired them.",
             "Windows Resource Protection did not find any integrity violations."
@@ -66,6 +67,7 @@ class ApoloDiagnosticsTests(unittest.TestCase):
 
     def test_sfc_does_not_count_unverified_repair(self):
         outputs = [
+            "No component store corruption detected.",
             "Windows Resource Protection found integrity violations.",
             "Windows Resource Protection found corrupt files but was unable to fix some of them.",
             "Windows Resource Protection found integrity violations."
