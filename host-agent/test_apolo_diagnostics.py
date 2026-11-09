@@ -50,6 +50,18 @@ class ApoloDiagnosticsTests(unittest.TestCase):
         self.assertEqual(result["corrected_count"], 0)
         self.assertTrue(result["verified"])
 
+    def test_failure_specific_repair_guidance_is_non_destructive(self):
+        with patch.object(apolo_diagnostics.platform, "system", return_value="Linux"), \\
+             patch.object(apolo_diagnostics, "_linux_checks", return_value=(
+                 [{"code": "DISK_SMART_FAILED", "severity": "critical",
+                   "recommendation": "backup"}], {"source": "test"}
+             )):
+            report = apolo_diagnostics.run_diagnostics()
+        plan = report["repair_plans"][0]
+        self.assertEqual(plan["action"], "STORAGE_REPLACEMENT_REVIEW")
+        self.assertFalse(plan["automatic_repair"])
+        self.assertTrue(plan["requires_user_consent"])
+
     def test_sfc_counts_repair_only_after_clean_postcheck(self):
         outputs = [
             "No component store corruption detected.",
