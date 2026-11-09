@@ -115,9 +115,9 @@ jobs:
         run: |
           set -euo pipefail
           swiftc sensor-contract/swift/adapter.swift -o /tmp/apolo-contract-swift
-          printf 'APOLO1\\tcpu_load\\t12.5\\tHOST_OS\\t/proc/stat\\t1731170000000\\n' | /tmp/apolo-contract-swift | grep -qx ACCEPTED
+          printf 'APOLO1\tcpu_load\t12.5\tHOST_OS\t/proc/stat\t1731170000000\n' | /tmp/apolo-contract-swift | grep -qx ACCEPTED
           set +e
-          output=$(printf 'APOLO1\\tcpu_load\\t12.5\\tTEST_FIXTURE\\tunit-test\\t1731170000000\\n' | /tmp/apolo-contract-swift)
+          output=$(printf 'APOLO1\tcpu_load\t12.5\tTEST_FIXTURE\tunit-test\t1731170000000\n' | /tmp/apolo-contract-swift)
           code=$?
           set -e
           test "$code" -eq 2
