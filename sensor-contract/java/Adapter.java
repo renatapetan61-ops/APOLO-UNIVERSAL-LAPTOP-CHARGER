@@ -4,7 +4,7 @@ import java.io.InputStreamReader;
 public final class Adapter {
   public static void main(String[] args) throws Exception {
     String line = new BufferedReader(new InputStreamReader(System.in)).readLine();
-    String[] f = line == null ? new String[0] : line.split("\\t", -1);
+    String[] f = line == null ? new String[0] : line.split("\t", -1);
     boolean ok = f.length == 6 && f[0].equals("APOLO1") && !f[1].isBlank() &&
       !f[2].isBlank() && (f[3].equals("HOST_OS") || f[3].equals("PHYSICAL_INTERFACE")) &&
       !f[4].isBlank();
