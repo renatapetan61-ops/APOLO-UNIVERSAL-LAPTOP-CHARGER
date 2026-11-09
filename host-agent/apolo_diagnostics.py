@@ -370,6 +370,36 @@ def _mac_checks() -> tuple[list[dict], dict]:
     return findings, telemetry
 
 
+def _repair_guidance(findings: list[dict]) -> list[dict]:
+    """Map detected failure classes to safe, evidence-based next actions."""
+    guidance = {
+        "CPU_HIGH_UTILIZATION": ("PROCESS_TRIAGE", "Identifique processos com alto consumo; não encerre processos do sistema automaticamente."),
+        "MEMORY_PRESSURE": ("MEMORY_TRIAGE", "Identifique aplicativos que consomem memória; não altere arquivo de paginação automaticamente."),
+        "DISK_ROOT_LOW_SPACE": ("STORAGE_CLEANUP_REVIEW", "Faça backup e revise arquivos temporários/pessoais antes de excluir qualquer dado."),
+        "SYSTEM_DISK_LOW_SPACE": ("STORAGE_CLEANUP_REVIEW", "Faça backup e use a limpeza oficial do Windows; nenhuma exclusão automática será feita."),
+        "DISK_SMART_FAILED": ("STORAGE_REPLACEMENT_REVIEW", "Priorize backup e substituição da unidade; não execute reparo intensivo que possa agravar falha física."),
+        "PHYSICAL_DISK_HEALTH_WARNING": ("STORAGE_VENDOR_DIAGNOSTIC", "Faça backup e use diagnóstico oficial do fabricante; não tente reparar setores automaticamente."),
+        "DISK_REPORTED_UNHEALTHY": ("STORAGE_VENDOR_DIAGNOSTIC", "Faça backup e valide SMART/diagnóstico oficial antes de qualquer reparo."),
+        "THERMAL_HIGH": ("THERMAL_COOLING_INSPECTION", "Desligue se houver superaquecimento persistente; verifique ventilação e refrigeração com o equipamento desenergizado."),
+        "PCI_DRIVER_MISSING": ("OFFICIAL_DRIVER_REVIEW", "Identifique o hardware e obtenha driver assinado no site do fabricante; instalação automática permanece bloqueada."),
+        "GPU_DRIVER_OR_DEVICE_STATUS": ("GPU_VENDOR_DIAGNOSTIC", "Confirme o código no Gerenciador de Dispositivos e use driver oficial compatível."),
+        "SYSTEM_ERROR_LOG_ENTRIES": ("EVENT_CORRELATION", "Correlacione os eventos com horário e dispositivo; logs isolados não justificam alteração automática."),
+    }
+    plans = []
+    for finding in findings:
+        code = str(finding.get("code", "UNKNOWN"))
+        action, instruction = guidance.get(code, ("MANUAL_REVIEW", finding.get("recommendation", "Revisão técnica necessária.")))
+        plans.append({
+            "finding_code": code,
+            "action": action,
+            "status": "GUIDANCE_ONLY",
+            "automatic_repair": False,
+            "requires_user_consent": True,
+            "instruction": instruction,
+        })
+    return plans
+
+
 def run_diagnostics() -> dict:
     system = platform.system()
     if system == "Windows":
