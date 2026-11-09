@@ -424,34 +424,84 @@ def _windows_is_admin() -> bool:
 
 
 def run_windows_system_file_repair(confirmed: bool) -> dict:
-    """Run fixed Windows SFC workflow only after app confirmation and admin check."""
+    """Repair Windows component store and protected files after app consent/admin check.
+
+    DISM and SFC commands are fixed (no caller-supplied command execution). A repair
+    is counted only when a clean post-check confirms the relevant subsystem.
+    """
     if not confirmed:
         raise PermissionError("Ação recusada: confirmação explícita do usuário não recebida.")
     if platform.system() != "Windows":
         raise RuntimeError("Esta ação só está disponível no Windows.")
     if not _windows_is_admin():
-        raise PermissionError("O agente precisa ser iniciado como Administrador para reparar arquivos protegidos do Windows.")
+        raise PermissionError("O agente precisa ser iniciado como Administrador para reparar componentes do Windows.")
 
-    before = _run(["sfc", "/verifyonly"], timeout=900)
+    stages: list[dict] = []
+    dism_scan = _run(["DISM", "/Online", "/Cleanup-Image", "/ScanHealth"], timeout=1800)
+    if dism_scan is None:
+        raise RuntimeError("A verificação DISM do armazenamento de componentes não pôde ser executada.")
+    scan_lower = dism_scan.casefold()
+    repairable = ("component store is repairable" in scan_lower or
+                  "o armazenamento de componentes pode ser reparado" in scan_lower or
+                  "o repositório de componentes pode ser reparado" in scan_lower)
+    not_repairable = ("component store cannot be repaired" in scan_lower or
+                      "o armazenamento de componentes não pode ser reparado" in scan_lower)
+    clean_store = ("no component store corruption detected" in scan_lower or
+                   "nenhuma corrupção do armazenamento de componentes foi detectada" in scan_lower or
+                   "nenhuma corrupção no repositório de componentes foi detectada" in scan_lower)
+    stages.append({"stage": "DISM_SCANHEALTH", "status":
+                   "REPAIRABLE" if repairable else "UNREPAIRABLE" if not_repairable else
+                   "CLEAN" if clean_store else "INDETERMINATE",
+                   "output": dism_scan[-1200:]})
+
+    dism_repaired = False
+    if repairable:
+        restore = _run(["DISM", "/Online", "/Cleanup-Image", "/RestoreHealth"], timeout=3600)
+        if restore is None:
+            return {"action": "WINDOWS_COMPONENT_STORE_AND_SFC_REPAIR", "status": "UNRESOLVED",
+                    "verified": False, "corrected_count": 0, "stages": stages,
+                    "message": "DISM identificou corrupção reparável, mas RestoreHealth não concluiu."}
+        post_dism = _run(["DISM", "/Online", "/Cleanup-Image", "/ScanHealth"], timeout=1800)
+        post_clean = bool(post_dism and (
+            "no component store corruption detected" in post_dism.casefold() or
+            "nenhuma corrupção do armazenamento de componentes foi detectada" in post_dism.casefold() or
+            "nenhuma corrupção no repositório de componentes foi detectada" in post_dism.casefold()))
+        stages.extend([
+            {"stage": "DISM_RESTOREHEALTH", "status": "EXECUTED", "output": restore[-1200:]},
+            {"stage": "DISM_POSTCHECK", "status": "CLEAN" if post_clean else "NOT_CONFIRMED",
+             "output": (post_dism or "Verificação posterior indisponível.")[-1200:]}
+        ])
+        if not post_clean:
+            return {"action": "WINDOWS_COMPONENT_STORE_AND_SFC_REPAIR", "status": "UNRESOLVED",
+                    "verified": False, "corrected_count": 0, "stages": stages,
+                    "message": "O armazenamento de componentes continua sem verificação limpa. O APOLO não contará o reparo como concluído."}
+        dism_repaired = True
+    elif not_repairable:
+        return {"action": "WINDOWS_COMPONENT_STORE_AND_SFC_REPAIR", "status": "UNRESOLVED",
+                "verified": False, "corrected_count": 0, "stages": stages,
+                "message": "DISM informou que o armazenamento de componentes não pode ser reparado automaticamente."}
+
+    before = _run(["sfc", "/verifyonly"], timeout=1200)
     if before is None:
         raise RuntimeError("A verificação inicial SFC não pôde ser executada.")
     lower_before = before.casefold()
     no_issues = ("did not find any integrity violations" in lower_before or
                  "não encontrou nenhuma violação de integridade" in lower_before)
     if no_issues:
-        return {"action": "WINDOWS_SFC_REPAIR", "status": "NOT_NEEDED",
-                "verified": True, "corrected_count": 0,
-                "message": "A verificação não encontrou violações de integridade.",
-                "before": before[-1200:]}
+        return {"action": "WINDOWS_COMPONENT_STORE_AND_SFC_REPAIR",
+                "status": "VERIFIED_REPAIRED" if dism_repaired else "NOT_NEEDED",
+                "verified": True, "corrected_count": 1 if dism_repaired else 0,
+                "stages": stages + [{"stage": "SFC_VERIFYONLY", "status": "CLEAN", "output": before[-1200:]}],
+                "message": "DISM/SFC concluíram as verificações; a integridade foi confirmada."}
 
-    repair = _run(["sfc", "/scannow"], timeout=1800)
+    repair = _run(["sfc", "/scannow"], timeout=2400)
     if repair is None:
         raise RuntimeError("O Verificador de Arquivos do Sistema não concluiu.")
-    verify = _run(["sfc", "/verifyonly"], timeout=900)
+    verify = _run(["sfc", "/verifyonly"], timeout=1200)
     if verify is None:
-        return {"action": "WINDOWS_SFC_REPAIR", "status": "UNVERIFIED",
-                "verified": False, "corrected_count": 0,
-                "message": "O reparo foi executado, mas a verificação posterior não pôde ser concluída.",
+        return {"action": "WINDOWS_COMPONENT_STORE_AND_SFC_REPAIR", "status": "UNVERIFIED",
+                "verified": False, "corrected_count": 0, "stages": stages,
+                "message": "SFC foi executado, mas a verificação posterior não pôde ser concluída.",
                 "repair_output": repair[-1200:]}
     lower_verify = verify.casefold()
     verified = ("did not find any integrity violations" in lower_verify or
@@ -459,10 +509,18 @@ def run_windows_system_file_repair(confirmed: bool) -> dict:
     repaired_phrase = ("successfully repaired" in repair.casefold() or
                        "reparou com êxito" in repair.casefold() or
                        "repaired them" in repair.casefold())
-    return {"action": "WINDOWS_SFC_REPAIR",
-            "status": "VERIFIED_REPAIRED" if verified and repaired_phrase else
+    sfc_repaired = verified and repaired_phrase
+    stages.extend([
+        {"stage": "SFC_SCANNOW", "status": "REPAIR_REPORTED" if repaired_phrase else "NO_REPAIR_CONFIRMATION",
+         "output": repair[-1200:]},
+        {"stage": "SFC_POSTCHECK", "status": "CLEAN" if verified else "NOT_CLEAN",
+         "output": verify[-1200:]}
+    ])
+    changed_and_verified = sfc_repaired or (dism_repaired and verified)
+    return {"action": "WINDOWS_COMPONENT_STORE_AND_SFC_REPAIR",
+            "status": "VERIFIED_REPAIRED" if changed_and_verified else
                       "VERIFIED_CLEAN" if verified else "UNRESOLVED",
-            "verified": verified, "corrected_count": 1 if verified and repaired_phrase else 0,
-            "message": "A verificação posterior confirmou integridade." if verified else
-                       "A verificação posterior ainda encontrou problemas ou não confirmou a integridade.",
-            "repair_output": repair[-1200:], "verification_output": verify[-1200:]}
+            "verified": verified, "corrected_count": 1 if changed_and_verified else 0,
+            "stages": stages,
+            "message": "A verificação posterior confirmou a integridade." if verified else
+                       "A verificação posterior ainda encontrou problemas ou não confirmou a integridade."}
