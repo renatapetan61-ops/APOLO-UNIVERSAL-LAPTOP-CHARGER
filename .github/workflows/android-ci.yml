@@ -4,6 +4,7 @@ on:
     paths:
       - "android/**"
       - "simulator/**"
+      - "sensor-contract/**"
       - "*.gradle.kts"
       - "gradle.properties"
       - ".github/workflows/android-ci.yml"
@@ -63,6 +64,52 @@ jobs:
           assert len(list(Path("/tmp/apolo-sensor-output").glob("*.json"))) == 7
           PY
 
+  sensor-contract-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.0.3"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install TypeScript and SystemVerilog simulator
+        run: |
+          npm install --global typescript
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+      - name: Compile 15-language observation contract adapters
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/apolo-contract-java /tmp/apolo-contract-csharp /tmp/apolo-contract-ts
+          cc -std=c11 -Wall -Wextra -Werror sensor-contract/c/adapter.c -o /tmp/apolo-contract-c
+          c++ -std=c++17 -Wall -Wextra -Werror sensor-contract/cpp/adapter.cpp -o /tmp/apolo-contract-cpp
+          rustc sensor-contract/rust/adapter.rs -o /tmp/apolo-contract-rust
+          go build -o /tmp/apolo-contract-go sensor-contract/go/adapter.go
+          javac -d /tmp/apolo-contract-java sensor-contract/java/Adapter.java
+          swiftc sensor-contract/swift/adapter.swift -o /tmp/apolo-contract-swift
+          tsc --target ES2020 --module commonjs --outDir /tmp/apolo-contract-ts sensor-contract/typescript/adapter.ts
+          dotnet new console --output /tmp/apolo-contract-csharp --framework net8.0 --no-restore
+          cp sensor-contract/csharp/Program.cs /tmp/apolo-contract-csharp/Program.cs
+          dotnet restore /tmp/apolo-contract-csharp
+          dotnet build /tmp/apolo-contract-csharp --no-restore
+          iverilog -g2012 -o /tmp/apolo-contract-sv sensor-contract/systemverilog/observation_gate.sv
+          chmod +x sensor-contract/bash/adapter.sh
+      - name: Test accepted host evidence and reject test fixtures across languages
+        run: python3 sensor-contract/test_matrix.py
+
   simulator-tests:
     runs-on: ubuntu-latest
     steps:
@@ -74,7 +121,7 @@ jobs:
         run: python -m unittest discover -s simulator -p "test_*.py" -v
 
   android:
-    needs: [simulator-tests, virtual-sensor-contract]
+    needs: [simulator-tests, virtual-sensor-contract, sensor-contract-matrix]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
