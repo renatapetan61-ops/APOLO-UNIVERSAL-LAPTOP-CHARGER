@@ -42,9 +42,14 @@ class ApoloDiagnosticsTests(unittest.TestCase):
                 apolo_diagnostics.run_windows_system_file_repair(True)
 
     def test_sfc_returns_not_needed_when_initial_integrity_check_is_clean(self):
-        with patch.object(apolo_diagnostics.platform, "system", return_value="Windows"), \
-             patch.object(apolo_diagnostics, "_windows_is_admin", return_value=True), \
-             patch.object(apolo_diagnostics, "_run", return_value="Windows Resource Protection did not find any integrity violations."):
+        with (
+            patch.object(apolo_diagnostics.platform, "system", return_value="Windows"),
+            patch.object(apolo_diagnostics, "_windows_is_admin", return_value=True),
+            patch.object(apolo_diagnostics, "_run", side_effect=[
+                "No component store corruption detected.",
+                "Windows Resource Protection did not find any integrity violations."
+            ])
+        ):
             result = apolo_diagnostics.run_windows_system_file_repair(True)
         self.assertEqual(result["status"], "NOT_NEEDED")
         self.assertEqual(result["corrected_count"], 0)
