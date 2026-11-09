@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -160,11 +161,11 @@ fun RepairScreen() {
         }.start()
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(androidx.compose.ui.unit.dp(12))) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Consertar erros do notebook", style = MaterialTheme.typography.headlineMedium)
         Text("O APOLO consulta telemetria real disponibilizada pelo sistema operacional. Os quatro chips são controladores virtuais de software.")
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(androidx.compose.ui.unit.dp(6))) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("APOLO-BMS IC • APOLO-CHARGE IC • APOLO-SAFETY IC • APOLO-USB-PD IC")
                 Text("Sensores virtuais processam observações identificadas. Temperatura, tensão e corrente só são exibidas quando uma fonte do sistema as fornece.")
             }
@@ -183,7 +184,7 @@ fun RepairScreen() {
             onDismissRequest = { if (!busy) report = null },
             title = { Text("APOLO — Relatório final") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(androidx.compose.ui.unit.dp(8))) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Erros encontrados: ${value.found}")
                     Text("Erros corrigidos: ${value.corrected}")
                     Text("Erros não corrigidos: ${value.notCorrected}")
