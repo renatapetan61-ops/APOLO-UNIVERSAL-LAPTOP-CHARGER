@@ -160,5 +160,5 @@ fun AmisWindowsInstallerTransferPanel() {
 }
 
 private const val INSTALLER_URL =
-    "https://raw.githubusercontent.com/renatapetan61-ops/APOLO-UNIVERSAL-LAPTOP-CHARGER/main/host-agent/install_amis_windows.ps1"
+    "https://raw.githubusercontent.com/renatapetan61-ops/APOLO-UNIVERSAL-LAPTOP-CHARGER/fix/runtime-bms-amis-ci/host-agent/install_amis_windows.ps1"
 private const val APPROVAL_URL = "http://127.0.0.1:8766/v1/install/approve"
