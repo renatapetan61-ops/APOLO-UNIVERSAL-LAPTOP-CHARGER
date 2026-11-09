@@ -29,6 +29,7 @@ private data class RepairReport(
     val findings: List<String>,
     val correctedItems: List<String>,
     val recommendations: List<String>,
+    val repairPlans: List<String>,
     val mode: String,
     val windowsRepairAvailable: Boolean
 )
@@ -57,6 +58,10 @@ private fun parseApoloReport(json: JSONObject): RepairReport {
         correctedItems = strings("corrected"),
         recommendations = (0 until json.getJSONArray("recommendations").length())
             .map { json.getJSONArray("recommendations").getString(it) },
+        repairPlans = (0 until (json.optJSONArray("repair_plans")?.length() ?: 0)).map { index ->
+            val plan = json.getJSONArray("repair_plans").getJSONObject(index)
+            "${plan.optString("finding_code")}: ${plan.optString("action")} — ${plan.optString("instruction")}"
+        },
         mode = policy.optString("mode", "UNKNOWN"),
         windowsRepairAvailable = repairAvailable
     )
@@ -194,6 +199,9 @@ fun RepairScreen() {
                     Text("Erros corrigidos", style = MaterialTheme.typography.titleSmall)
                     if (value.correctedItems.isEmpty()) Text("Nenhum erro foi alterado ou confirmado como corrigido.")
                     value.correctedItems.forEach { Text("• $it") }
+                    Text("Plano seguro por tipo de falha", style = MaterialTheme.typography.titleSmall)
+                    if (value.repairPlans.isEmpty()) Text("Nenhuma ação específica foi indicada pelas evidências disponíveis.")
+                    value.repairPlans.forEach { Text("• $it") }
                     Text("Como evitar novos problemas", style = MaterialTheme.typography.titleSmall)
                     value.recommendations.forEach { Text("• $it") }
                     Text("Modo: ${value.mode}", style = MaterialTheme.typography.labelSmall)
