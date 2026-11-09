@@ -79,9 +79,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-      - uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: "6.0.3"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -99,7 +96,6 @@ jobs:
           rustc sensor-contract/rust/adapter.rs -o /tmp/apolo-contract-rust
           go build -o /tmp/apolo-contract-go sensor-contract/go/adapter.go
           javac -d /tmp/apolo-contract-java sensor-contract/java/Adapter.java
-          swiftc sensor-contract/swift/adapter.swift -o /tmp/apolo-contract-swift
           tsc --target ES2020 --module commonjs --outDir /tmp/apolo-contract-ts sensor-contract/typescript/adapter.ts
           dotnet new console --output /tmp/apolo-contract-csharp --framework net8.0 --no-restore
           cp sensor-contract/csharp/Program.cs /tmp/apolo-contract-csharp/Program.cs
@@ -109,6 +105,23 @@ jobs:
           chmod +x sensor-contract/bash/adapter.sh
       - name: Test accepted host evidence and reject test fixtures across languages
         run: python3 sensor-contract/test_matrix.py
+
+  swift-contract:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and test Swift observation adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          swiftc sensor-contract/swift/adapter.swift -o /tmp/apolo-contract-swift
+          printf 'APOLO1\\tcpu_load\\t12.5\\tHOST_OS\\t/proc/stat\\t1731170000000\\n' | /tmp/apolo-contract-swift | grep -qx ACCEPTED
+          set +e
+          output=$(printf 'APOLO1\\tcpu_load\\t12.5\\tTEST_FIXTURE\\tunit-test\\t1731170000000\\n' | /tmp/apolo-contract-swift)
+          code=$?
+          set -e
+          test "$code" -eq 2
+          test "$output" = "REJECTED"
 
   simulator-tests:
     runs-on: ubuntu-latest
@@ -121,7 +134,7 @@ jobs:
         run: python -m unittest discover -s simulator -p "test_*.py" -v
 
   android:
-    needs: [simulator-tests, virtual-sensor-contract, sensor-contract-matrix]
+    needs: [simulator-tests, virtual-sensor-contract, sensor-contract-matrix, swift-contract]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
