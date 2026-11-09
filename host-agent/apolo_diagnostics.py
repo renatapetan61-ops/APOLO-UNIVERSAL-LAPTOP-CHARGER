@@ -402,6 +402,7 @@ def run_diagnostics() -> dict:
         "repair_policy": {"mode": "CONSENT_REQUIRED",
                           "available_actions": ["WINDOWS_COMPONENT_STORE_AND_SFC_REPAIR"] if system == "Windows" else [],
                           "reason": "DISM e SFC no Windows exigem confirmação explícita, privilégios adequados e verificação posterior; outras classes permanecem em diagnóstico até haver procedimento seguro específico."},
+        "repair_plans": _repair_guidance(actionable),
         "recommendations": [item["recommendation"] for item in findings] or
             ["Nenhum problema foi confirmado pelas interfaces consultadas. Isso não prova ausência de defeitos."],
         "limitations": [
