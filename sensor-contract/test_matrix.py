@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Cross-language contract smoke tests. Binaries are compiled by the CI workflow."""
-import os
 import sqlite3
 import subprocess
 import sys
@@ -20,18 +19,28 @@ def run(name, command, expect=0):
         raise AssertionError(f"{name}: missing {expected}: {result.stdout}")
     print(f"PASS {name}: {expected}")
 
-run("Python", [sys.executable, "sensor-contract/python/adapter.py"])\nrun("Python fixture rejection", [sys.executable, "sensor-contract/python/adapter.py"], 2)
-run("C", ["/tmp/apolo-contract-c"])\nrun("C fixture rejection", ["/tmp/apolo-contract-c"], 2)
-run("C++", ["/tmp/apolo-contract-cpp"])\nrun("C++ fixture rejection", ["/tmp/apolo-contract-cpp"], 2)
-run("Rust", ["/tmp/apolo-contract-rust"])\nrun("Rust fixture rejection", ["/tmp/apolo-contract-rust"], 2)
-run("Go", ["/tmp/apolo-contract-go"])\nrun("Go fixture rejection", ["go", "run", "sensor-contract/go/adapter.go"], 2)
-run("C#", ["dotnet", "run", "--project", "/tmp/apolo-contract-csharp", "--no-build"])\nrun("C# fixture rejection", ["dotnet", "run", "--project", "/tmp/apolo-contract-csharp", "--no-build"], 2)
-run("Java", ["java", "-cp", "/tmp/apolo-contract-java", "Adapter"])\nrun("Java fixture rejection", ["java", "-cp", "/tmp/apolo-contract-java", "Adapter"], 2)
-run("Swift", ["/tmp/apolo-contract-swift"])\nrun("Swift fixture rejection", ["/tmp/apolo-contract-swift"], 2)
-run("JavaScript", ["node", "sensor-contract/javascript/adapter.js"])\nrun("JavaScript fixture rejection", ["node", "sensor-contract/javascript/adapter.js"], 2)
-run("TypeScript", ["node", "/tmp/apolo-contract-ts/adapter.js"])\nrun("TypeScript fixture rejection", ["node", "/tmp/apolo-contract-ts/adapter.js"], 2)
-run("PowerShell", ["pwsh", "-NoProfile", "-File", "sensor-contract/powershell/adapter.ps1"])\nrun("PowerShell fixture rejection", ["pwsh", "-NoProfile", "-File", "sensor-contract/powershell/adapter.ps1"], 2)
-run("Bash", ["bash", "sensor-contract/bash/adapter.sh"])\nrun("Bash fixture rejection", ["bash", "sensor-contract/bash/adapter.sh"], 2)
+run("Python", [sys.executable, "sensor-contract/python/adapter.py"])
+run("Python fixture rejection", [sys.executable, "sensor-contract/python/adapter.py"], 2)
+run("C", ["/tmp/apolo-contract-c"])
+run("C fixture rejection", ["/tmp/apolo-contract-c"], 2)
+run("C++", ["/tmp/apolo-contract-cpp"])
+run("C++ fixture rejection", ["/tmp/apolo-contract-cpp"], 2)
+run("Rust", ["/tmp/apolo-contract-rust"])
+run("Rust fixture rejection", ["/tmp/apolo-contract-rust"], 2)
+run("Go", ["/tmp/apolo-contract-go"])
+run("Go fixture rejection", ["/tmp/apolo-contract-go"], 2)
+run("C#", ["dotnet", "run", "--project", "/tmp/apolo-contract-csharp", "--no-build"])
+run("C# fixture rejection", ["dotnet", "run", "--project", "/tmp/apolo-contract-csharp", "--no-build"], 2)
+run("Java", ["java", "-cp", "/tmp/apolo-contract-java", "Adapter"])
+run("Java fixture rejection", ["java", "-cp", "/tmp/apolo-contract-java", "Adapter"], 2)
+run("JavaScript", ["node", "sensor-contract/javascript/adapter.js"])
+run("JavaScript fixture rejection", ["node", "sensor-contract/javascript/adapter.js"], 2)
+run("TypeScript", ["node", "/tmp/apolo-contract-ts/adapter.js"])
+run("TypeScript fixture rejection", ["node", "/tmp/apolo-contract-ts/adapter.js"], 2)
+run("PowerShell", ["pwsh", "-NoProfile", "-File", "sensor-contract/powershell/adapter.ps1"])
+run("PowerShell fixture rejection", ["pwsh", "-NoProfile", "-File", "sensor-contract/powershell/adapter.ps1"], 2)
+run("Bash", ["bash", "sensor-contract/bash/adapter.sh"])
+run("Bash fixture rejection", ["bash", "sensor-contract/bash/adapter.sh"], 2)
 
 db = sqlite3.connect(":memory:")
 db.executescript((ROOT / "sensor-contract/sql/schema.sql").read_text())
