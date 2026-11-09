@@ -20,6 +20,25 @@ class VirtualSensorObservation:
 
 
 class VirtualSensorEngine:
+    def __init__(self) -> None:
+        self.contract_stats = {"accepted": 0, "rejected": 0}
+
+    @staticmethod
+    def _valid_contract(item: VirtualSensorObservation) -> bool:
+        """Runtime gate matching the APOLO1 six-field multilingual contract."""
+        fields = (item.name, item.value, item.origin, item.source, item.observed_at)
+        if not all(isinstance(value, str) and value.strip() for value in fields):
+            return False
+        if item.origin not in {"HOST_OS", "PHYSICAL_INTERFACE"}:
+            return False
+        if any("\t" in value or "\n" in value or "\r" in value for value in fields):
+            return False
+        try:
+            observed = datetime.fromisoformat(item.observed_at.replace("Z", "+00:00"))
+            return observed.timestamp() > 0
+        except (ValueError, OverflowError):
+            return False
+
     def collect(self, findings: list[dict], telemetry: dict | None = None) -> list[VirtualSensorObservation]:
         now = datetime.now(timezone.utc).isoformat()
         observations = [
@@ -48,8 +67,10 @@ class VirtualSensorEngine:
                 "diagnostic_finding", str(finding.get("code", "UNKNOWN")),
                 str(finding.get("source", "unknown")), observed_at=now
             ))
-        return [item for item in observations
-                if item.name.strip() and item.source.strip() and item.observed_at]
+        accepted = [item for item in observations if self._valid_contract(item)]
+        self.contract_stats = {"accepted": len(accepted),
+                               "rejected": len(observations) - len(accepted)}
+        return accepted
 
 
 class ApoloBmsIc:
@@ -116,6 +137,13 @@ class ApoloVirtualIcRuntime:
             "runtime": "APOLO-VIRTUAL-IC-RUNTIME/2",
             "sensor_mode": "VIRTUAL_SOFTWARE_OBSERVATIONS",
             "observation_count": len(observations),
+            "observation_contract": {
+                "protocol": "APOLO1",
+                "runtime_validator": "Python canonical gate",
+                "accepted": self.sensors.contract_stats["accepted"],
+                "rejected": self.sensors.contract_stats["rejected"],
+                "multilingual_adapters": "15-language compatibility validators are compiled/tested in CI; they are not all launched as host processes",
+            },
             "physical_sensor_measurements": False,
             "chips": results,
         }
