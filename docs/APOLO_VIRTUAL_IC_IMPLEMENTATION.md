@@ -9,9 +9,9 @@ The four APOLO ICs are software-only virtual controllers embedded in the APOLO A
 - Android: `ApoloVirtualChips.kt` defines four independent Kotlin controller modules and an observation provenance gate.
 - Notebook host: `host-agent/apolo_virtual_ics.py` implements the four independently executable controller classes and their virtual sensor engine.
 - Diagnostics: `host-agent/apolo_diagnostics.py` gathers read-only, OS-exposed evidence and executes the virtual IC runtime.
-- Transport: `POST /v1/diagnostics/run` is exposed by the loopback-only host agent. The existing owner-authorized ADB reverse bridge makes it reachable from the phone.
+- Transport: `POST /v1/diagnostics/run`, `GET /v1/health`, and the consent-gated Windows repair endpoint are exposed by the loopback-only host agent. The owner-authorized ADB reverse bridge makes them reachable from the phone.
 - UI: `RepairScreen.kt` starts the requested diagnostic operation and displays the final report in an Android app dialog. The notebook does not display the report.
-- Tests: Python unit tests cover chip execution, provenance and report accounting; Android unit tests cover controller isolation and test-data provenance.
+- Tests: Python unit tests cover diagnostics and repair authorization; Android unit tests cover controller isolation and observation provenance; CI compiles/runs all 15 observation-contract adapters.
 
 ## Four virtual controllers
 
@@ -34,7 +34,7 @@ The report is returned to the Android app and displayed only in the app's final 
 4. errors not corrected and reasons;
 5. prevention recommendations.
 
-The current diagnostic implementation is read-only. It therefore reports zero corrections, rather than falsely claiming to repair a driver, file, firmware, or hardware fault. The report's "found" count is the count of evidence-backed findings, not a claim that every possible notebook fault was discovered.
+The diagnostic scan remains read-only and reports zero corrections. It now collects additional OS-backed telemetry where available: CPU utilization, memory availability, GPU identity/driver/status, storage status/free space, thermal-zone/hwmon values, PCI driver associations, and SMBIOS/baseboard evidence. Missing readings are marked unavailable rather than fabricated. A single Windows system-file repair workflow is available after an explicit in-app confirmation: SFC verify-only, SFC scan-and-repair if corruption is found, and a post-repair verify-only check. The action is available only on Windows and requires the host agent to be elevated as Administrator. The app counts a correction only when the post-check confirms a clean integrity state. This is not a general-purpose driver, firmware, malware or physical hardware repair facility. The report's "found" count is the count of evidence-backed findings and repair-action findings, not a claim that every possible notebook fault was discovered.
 
 ## Fifteen-language engineering plan
 
@@ -56,7 +56,7 @@ The 15-language target is assigned by responsibility, not by duplicating the sam
 14. SQL — local diagnostic history and audit records.
 15. SystemVerilog — optional executable digital-logic model for research/testing, not a physical sensor and not an Android ASIC.
 
-Only Kotlin and Python are wired into the current runtime milestone. The other language modules are planned work and must not be described as implemented until source code, build integration and tests are committed.
+The 15-language observation-contract adapter source set is now present under `sensor-contract/`. It implements a common tab-separated record validator and a cross-language test harness. Kotlin is integrated in the Android source tree; Python remains the host-side orchestration language. The C, C++, Rust, Go, C#, Java, Swift, JavaScript, TypeScript, PowerShell, Bash, SQL and SystemVerilog adapters are independently executable contract gates, not separate hardware drivers. GitHub Actions compiles and runs the matrix and rejects `TEST_FIXTURE` input. Do not claim these adapters directly access physical sensors: they validate normalized observations supplied by an OS interface or a separately validated physical interface.
 
 ## Safety and honesty invariants
 
