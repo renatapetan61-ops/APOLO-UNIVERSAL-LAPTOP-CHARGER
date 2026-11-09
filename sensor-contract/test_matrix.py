@@ -24,7 +24,7 @@ run("Python", [sys.executable, "sensor-contract/python/adapter.py"])\nrun("Pytho
 run("C", ["/tmp/apolo-contract-c"])\nrun("C fixture rejection", ["/tmp/apolo-contract-c"], 2)
 run("C++", ["/tmp/apolo-contract-cpp"])\nrun("C++ fixture rejection", ["/tmp/apolo-contract-cpp"], 2)
 run("Rust", ["/tmp/apolo-contract-rust"])\nrun("Rust fixture rejection", ["/tmp/apolo-contract-rust"], 2)
-run("Go", ["go", "run", "sensor-contract/go/adapter.go"])\nrun("Go fixture rejection", ["go", "run", "sensor-contract/go/adapter.go"], 2)
+run("Go", ["/tmp/apolo-contract-go"])\nrun("Go fixture rejection", ["go", "run", "sensor-contract/go/adapter.go"], 2)
 run("C#", ["dotnet", "run", "--project", "/tmp/apolo-contract-csharp", "--no-build"])\nrun("C# fixture rejection", ["dotnet", "run", "--project", "/tmp/apolo-contract-csharp", "--no-build"], 2)
 run("Java", ["java", "-cp", "/tmp/apolo-contract-java", "Adapter"])\nrun("Java fixture rejection", ["java", "-cp", "/tmp/apolo-contract-java", "Adapter"], 2)
 run("Swift", ["/tmp/apolo-contract-swift"])\nrun("Swift fixture rejection", ["/tmp/apolo-contract-swift"], 2)
