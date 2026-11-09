@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 fn valid(line: &str) -> bool {
-    let fields: Vec<&str> = line.trim_end_matches(['\\r', '\\n']).split('\\t').collect();
+    let fields: Vec<&str> = line.trim_end_matches(['\r', '\n']).split('\t').collect();
     fields.len() == 6 && fields[0] == "APOLO1" && !fields[1].trim().is_empty()
         && !fields[2].trim().is_empty()
         && (fields[3] == "HOST_OS" || fields[3] == "PHYSICAL_INTERFACE")
