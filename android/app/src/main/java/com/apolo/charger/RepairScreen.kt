@@ -200,7 +200,7 @@ fun RepairScreen() {
                 }
             },
             confirmButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(androidx.compose.ui.unit.dp(8))) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { report = null }, enabled = !busy) { Text("Fechar") }
                     if (value.windowsRepairAvailable && value.system == "Windows") {
                         Button(onClick = { repairPrompt = true }, enabled = !busy) {
