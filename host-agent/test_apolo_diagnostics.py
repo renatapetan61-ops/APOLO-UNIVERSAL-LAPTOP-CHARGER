@@ -23,7 +23,7 @@ class ApoloDiagnosticsTests(unittest.TestCase):
     def test_linux_checks_return_telemetry_and_findings(self):
         with patch.object(apolo_diagnostics.platform, "system", return_value="Linux"), \
              patch.object(apolo_diagnostics, "_linux_checks", return_value=(
-                 [{"code": "TEST", "title": "Test", "detail": "evidence", "severity": "info",
+                 [{"code": "TEST", "title": "Test", "detail": "evidence", "severity": "warning",
                    "source": "unit-test", "recommendation": "review", "status": "FOUND"}],
                  {"source": "test-procfs", "cpu": {"utilization_percent": 1.0}}
              )):
