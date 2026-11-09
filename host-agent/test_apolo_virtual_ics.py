@@ -23,6 +23,20 @@ class VirtualIcRuntimeTests(unittest.TestCase):
         result = ApoloVirtualIcRuntime().execute([])
         self.assertFalse(result["physical_sensor_measurements"])
 
+    def test_os_telemetry_is_routed_to_relevant_virtual_chips(self):
+        telemetry = {
+            "source": "unit-test-host-api",
+            "battery": [{"name": "BAT0", "capacity": 81}],
+            "power_adapter": [{"name": "AC", "online": 1}],
+            "usb_devices": ["1-1"],
+        }
+        result = ApoloVirtualIcRuntime().execute([], telemetry)
+        chips = {item["id"]: item for item in result["chips"]}
+        self.assertGreater(chips["APOLO-BMS-IC"]["processed_observations"], 0)
+        self.assertGreater(chips["APOLO-CHARGE-IC"]["processed_observations"], 0)
+        self.assertGreater(chips["APOLO-USB-PD-IC"]["processed_observations"], 0)
+        self.assertFalse(result["physical_sensor_measurements"])
+
 
 if __name__ == "__main__":
     unittest.main()
