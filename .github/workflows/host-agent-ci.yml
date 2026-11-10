@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - "host-agent/**"
+      - "hardware-virtual/**"
       - ".github/workflows/host-agent-ci.yml"
   pull_request:
     paths:
@@ -25,3 +26,5 @@ jobs:
       - name: Run host agent OCR tests
         working-directory: host-agent
         run: python -m unittest -v
+      - name: Compile and test virtual hardware board
+        run: python -m py_compile hardware-virtual/apolo_virtual_hardware.py && python -m unittest discover -s hardware-virtual -v
