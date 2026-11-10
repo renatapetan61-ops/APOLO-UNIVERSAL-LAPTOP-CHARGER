@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class Screen(val label: String) {
-    HOME("Painel"), BATTERY("Bateria"), BMS("BMS"), REPAIR("Reparar"), CONNECTION("Conexão"), ABOUT("Sobre")
+    HOME("Painel"), BATTERY("Bateria"), BMS("BMS"), REPAIR("Reparar"), CONNECTION("Conexão"), HARDWARE("Hardware"), ABOUT("Sobre")
 }
 
 private enum class DemoScenario(val label: String) {
@@ -60,6 +60,7 @@ private fun ApoloApp() {
                                         Screen.BMS -> Icons.Default.MonitorHeart
                                         Screen.CONNECTION -> Icons.Default.Build
                                         Screen.REPAIR -> Icons.Default.MonitorHeart
+                                        Screen.HARDWARE -> Icons.Default.Memory
                                         Screen.ABOUT -> Icons.Default.Info
                                     },
                                     contentDescription = item.label
@@ -81,6 +82,7 @@ private fun ApoloApp() {
                     Screen.BMS -> BmsScreen(scenario, telemetry)
                     Screen.CONNECTION -> ConnectionScreen()
                     Screen.REPAIR -> RepairScreen()
+                    Screen.HARDWARE -> VirtualHardwareScreen()
                     Screen.ABOUT -> AboutScreen()
                 }
             }
