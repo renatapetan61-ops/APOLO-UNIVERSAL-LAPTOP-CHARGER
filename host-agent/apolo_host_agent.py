@@ -14,6 +14,7 @@ import platform
 import re
 import socket
 import subprocess
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from amis_camera import discover_cameras, capture_frame
@@ -21,6 +22,12 @@ from amis_virtual_camera import AMISVirtualCameraCore
 from amis_vision_engine import AMISMotherboardVisionEngine
 from amis_hardware_mapper import map_components, render_svg
 from apolo_diagnostics import run_diagnostics, run_windows_system_file_repair
+
+# Import the application-level hardware emulator from the repository's dedicated layer.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "hardware-virtual"))
+from apolo_virtual_hardware import ApoloVirtualHardwareBoard
+
+VIRTUAL_HARDWARE = ApoloVirtualHardwareBoard()
 
 HOST, PORT = "127.0.0.1", 8765
 PROTOCOL = "apolo-host-agent/4"
@@ -385,6 +392,8 @@ class Handler(BaseHTTPRequestHandler):
                        "adb_reverse": bridge,
                        "usb_test": "PHONE_TO_HOST_LOOPBACK_REACHABLE",
                        "note": "HTTP response proves the app reached this agent through the configured bridge; it does not test electrical USB power or data integrity."}
+        elif self.path == "/v1/virtual-hardware/snapshot":
+            payload = VIRTUAL_HARDWARE.snapshot()
         elif self.path == "/v1/amis/status":
             payload = amis_status()
         elif self.path == "/v1/virtual-camera/status":
